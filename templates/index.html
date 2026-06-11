@@ -378,8 +378,9 @@ body {
     <div id="version-detail-panel">
       <div class="form-group"><label>操作说明</label><div id="vd-desc" style="font-size:13px;"></div></div>
       <div class="form-group"><label>提交人</label><div id="vd-user" style="font-size:13px;"></div></div>
+      <div class="form-group" id="vd-rollback-info-group" style="display:none;"><label>回退详情</label><div id="vd-rollback-info" style="font-size:13px;"></div></div>
       <div class="form-group"><label>版本内容</label><pre id="vd-content"></pre></div>
-      <div class="form-group"><label>相比上一版本的差异</label><div id="vd-diff" style="font-size:11px;"></div></div>
+      <div class="form-group"><label id="vd-diff-label">相比上一版本的差异</label><div id="vd-diff" style="font-size:11px;"></div></div>
       <div class="modal-actions">
         <button class="danger" id="btn-timeline-rollback">回退到此版本</button>
         <button onclick="closeVersionDetail()">关闭详情</button>
@@ -714,12 +715,20 @@ async function loadAudit(){
     const list=document.getElementById('audit-list');
     let html='';
     if(data.conflicts.length>0){
-      html+=`<div style="font-size:11px;color:#ff9800;padding:4px 8px;font-weight:600;">⚠️ 冲突记录 (${data.conflict_count} 条)</div>`;
+      html+=`<div style="font-size:11px;color:#ff9800;padding:4px 8px;font-weight:600;border-bottom:1px solid #3a3a1a;">⚠️ 冲突记录 (${data.conflict_count} 条)</div>`;
       data.conflicts.forEach(c=>{
-        html+=`<div class="audit-entry conflict" onclick="navigateToVersion(${c.version})">
-          <span class="audit-ver">v${c.version}</span><span class="audit-conflict-badge">冲突</span>
-          <span class="audit-usr">${esc(c.user_name)}</span><span class="audit-type">${esc(c.type)}</span>
-          <span class="audit-desc">${esc(c.conflict_desc||c.description)}</span></div>`;
+        let detail='';
+        if(c.conflict_with_user)detail+=`<span style="color:#ff8080;">覆盖者:</span> ${esc(c.user_name)} → <span style="color:#ff9800;">被覆盖:</span> ${esc(c.conflict_with_user)} (v${c.conflict_with_version})`;
+        if(c.conflict_overwritten_value!==null&&c.conflict_overwritten_value!==undefined)detail+=` <span style="color:#6c7a89;">| 旧值:</span> <span style="color:#ff8080;font-family:monospace;">${trunc(c.conflict_overwritten_value)}</span>`;
+        if(c.conflict_final_value!==null&&c.conflict_final_value!==undefined)detail+=` <span style="color:#6c7a89;">| 生效值:</span> <span style="color:#81c784;font-family:monospace;">${trunc(c.conflict_final_value)}</span>`;
+        html+=`<div class="audit-entry conflict" style="flex-direction:column;align-items:flex-start;gap:2px;padding:6px 8px;" onclick="navigateToVersion(${c.version})">
+          <div style="display:flex;align-items:center;gap:6px;width:100%;">
+            <span class="audit-ver">v${c.version}</span><span class="audit-conflict-badge">冲突</span>
+            <span class="audit-usr">${esc(c.user_name)}</span><span class="audit-type">${esc(c.type)}</span>
+            <span class="audit-desc">${esc(c.conflict_desc||c.description)}</span>
+          </div>
+          <div style="font-size:10px;padding-left:36px;">${detail}</div>
+        </div>`;
       });
       html+='<div style="border-top:1px solid #2a3a4a;margin:4px 0;"></div>';
     }
@@ -756,8 +765,18 @@ async function loadVersionDetail(v){
   try{const resp=await fetch(`/api/doc/${docId}/version/${v}`);const data=await resp.json();
     document.getElementById('vd-desc').textContent=data.meta.description;
     document.getElementById('vd-user').textContent=`${data.meta.user_name} (${data.meta.type})`;
+    const isRollback=data.meta.type==='rollback';
+    const rbInfo=document.getElementById('vd-rollback-info-group');
+    if(isRollback&&data.meta.from_version!==undefined&&data.meta.target_version!==undefined){
+      rbInfo.style.display='block';
+      document.getElementById('vd-rollback-info').innerHTML=`从 <b style="color:#ff8080;">v${data.meta.from_version}</b> 回退到 <b style="color:#81c784;">v${data.meta.target_version}</b>`;
+      document.getElementById('vd-diff-label').textContent=`回退前后差异 (v${data.meta.from_version} → v${data.meta.target_version})`;
+    }else{
+      rbInfo.style.display='none';
+      document.getElementById('vd-diff-label').textContent='相比上一版本的差异';
+    }
     document.getElementById('vd-content').textContent=JSON.stringify(data.data,null,2);
-    document.getElementById('vd-diff').innerHTML=(data.diff_from_prev&&data.diff_from_prev.length>0)?renderDiffItems(data.diff_from_prev):'<span style="color:#6c7a89;">初始版本，无上一版本可对比</span>';
+    document.getElementById('vd-diff').innerHTML=(data.diff_from_prev&&data.diff_from_prev.length>0)?renderDiffItems(data.diff_from_prev):'<span style="color:#6c7a89;">'+(isRollback?'回退前后内容一致，无差异':'初始版本，无上一版本可对比')+'</span>';
     document.getElementById('version-detail-panel').classList.add('active');
     timelineTargetVersion=v;
     document.getElementById('btn-timeline-rollback').style.display=role==='observer'?'none':'block';

@@ -356,28 +356,10 @@ class Document:
     def rollback_to(self, target_version):
         if target_version > self.version or target_version < 0:
             return False
-        nearest_snapshot = max(v for v in self.snapshots if v <= target_version)
-        self.data = copy.deepcopy(self.snapshots[nearest_snapshot])
-        self.version = nearest_snapshot
-        ops_to_replay = [op for op in self.operations
-                         if nearest_snapshot < op.get('applied_version', 0) <= target_version]
-        ops_to_replay.sort(key=lambda x: x.get('applied_version', 0))
-        for op in ops_to_replay:
-            op_type = op['type']
-            if op_type == 'update':
-                self.set_value(op['path'], op['value'])
-            elif op_type == 'add':
-                self.add_node(op['path'], op['key'], op['value'])
-            elif op_type == 'delete':
-                self.delete_path(op['path'])
-            elif op_type == 'move':
-                self.move_node(op['from_path'], op['to_path'])
-            self.version += 1
-        self.operations = [op for op in self.operations
-                           if op.get('applied_version', 0) <= target_version]
-        if self.version % 5 == 0 or self.version < 5:
-            self.snapshots[self.version] = copy.deepcopy(self.data)
-        self._save_to_disk()
+        state = self.get_state_at(target_version)
+        if state is None:
+            return False
+        self.data = state
         return True
 
     def register_client(self, client_id, user_name, role='editor'):
@@ -829,13 +811,22 @@ def version_detail(doc_id, version):
                 'description': _op_desc(op),
                 'old_value': op.get('old_value'),
                 'new_value': op.get('new_value'),
-                'path': op.get('path')
+                'path': op.get('path'),
+                'from_version': op.get('from_version'),
+                'target_version': op.get('target_version')
             }
             break
     if not meta:
         meta = {'type': 'init', 'user_name': 'System', 'timestamp': 0, 'description': '初始文档状态'}
-    prev_state = doc.get_state_at(max(0, version - 1)) if version > 0 else None
-    diff_from_prev = compute_diff(prev_state, state) if prev_state else None
+    diff_from_prev = None
+    if meta.get('type') == 'rollback' and meta.get('from_version') is not None and meta.get('target_version') is not None:
+        prev_state = doc.get_state_at(meta['from_version'])
+        target_state = doc.get_state_at(meta['target_version'])
+        if prev_state and target_state:
+            diff_from_prev = compute_diff(prev_state, target_state)
+    else:
+        prev_state = doc.get_state_at(max(0, version - 1)) if version > 0 else None
+        diff_from_prev = compute_diff(prev_state, state) if prev_state else None
     return jsonify({
         'data': state,
         'version': version,
@@ -874,9 +865,16 @@ def audit_operations(doc_id):
             'new_value': op.get('new_value')
         }
         if op.get('_conflict_with'):
+            overwritten_ver = op.get('_conflict_with')
+            overwritten_op = next((o for o in doc.operations if o.get('applied_version', 0) == overwritten_ver), None)
+            overwritten_user = overwritten_op.get('user_name', 'Unknown') if overwritten_op else 'Unknown'
+            overwritten_value = overwritten_op.get('new_value') if overwritten_op else None
             entry['conflict'] = True
-            entry['conflict_with_version'] = op.get('_conflict_with')
-            entry['conflict_desc'] = f"{op.get('user_name')} 的 {_op_desc(op)} 覆盖了版本 {op.get('_conflict_with')} 的修改"
+            entry['conflict_with_version'] = overwritten_ver
+            entry['conflict_with_user'] = overwritten_user
+            entry['conflict_overwritten_value'] = _serializable(overwritten_value) if overwritten_value is not None else None
+            entry['conflict_final_value'] = _serializable(op.get('new_value')) if op.get('new_value') is not None else None
+            entry['conflict_desc'] = f"{op.get('user_name')} 覆盖了 {overwritten_user} (v{overwritten_ver})，最终值: {_serializable(op.get('new_value')) if op.get('new_value') is not None else 'N/A'}"
         filtered.append(entry)
         if entry.get('conflict'):
             conflicts.append(entry)
@@ -910,25 +908,29 @@ def get_operation_detail(doc_id, version):
 def rollback_doc(doc_id, target_version):
     doc = get_or_create_document(doc_id)
     user_id = request.args.get('sid', '')
-    if user_id and doc.clients.get(user_id, {}).get('role') == 'observer':
+    if not user_id:
+        return jsonify({'success': False, 'error': '缺少身份标识，无法执行回退'}), 403
+    client_info = doc.clients.get(user_id)
+    if not client_info:
+        return jsonify({'success': False, 'error': '无效的身份标识'}), 403
+    if client_info.get('role') == 'observer':
         return jsonify({'success': False, 'error': '观察者模式，无法回退'}), 403
     old_version = doc.version
     success = doc.rollback_to(target_version)
     if success:
-        doc.version += 1
+        doc.version = old_version + 1
         new_ver = doc.version
         doc.operations.append({
             'type': 'rollback',
-            'user_name': '系统',
-            'user_id': user_id or 'system',
+            'user_name': client_info.get('user_name', '系统'),
+            'user_id': user_id,
             'timestamp': time.time(),
             'applied_version': new_ver,
             'from_version': old_version,
             'target_version': target_version,
             'description': f'回退: v{old_version} → v{target_version}'
         })
-        if new_ver % 5 == 0 or new_ver < 5:
-            doc.snapshots[new_ver] = copy.deepcopy(doc.data)
+        doc.snapshots[new_ver] = copy.deepcopy(doc.data)
         doc._save_to_disk()
         socketio.emit('operation_log', {
             'message': f'文档已回退到版本 {target_version} (from v{old_version})，当前版本 v{new_ver}',
@@ -942,7 +944,7 @@ def rollback_doc(doc_id, target_version):
             'clients': {k: v for k, v in doc.clients.items()},
             'doc_id': doc_id
         }, room=doc_id)
-        return jsonify({'success': True, 'version': doc.version})
+        return jsonify({'success': True, 'version': doc.version, 'from_version': old_version})
     return jsonify({'success': False, 'error': '无效的目标版本'}), 400
 
 

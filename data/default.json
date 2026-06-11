@@ -1,0 +1,176 @@
+{
+  "data": {
+    "product_catalog": {
+      "name": "电子产品目录",
+      "version": "1.0.0",
+      "categories": {
+        "computers": {
+          "name": "电脑",
+          "products": {
+            "laptop_pro": {
+              "name": "专业笔记本电脑",
+              "price": 8999,
+              "specs": {
+                "cpu": "i7-13700H",
+                "ram": "16GB",
+                "storage": "512GB SSD"
+              },
+              "in_stock": true
+            },
+            "desktop_elite": {
+              "name": "精英台式机",
+              "price": 12999,
+              "specs": {
+                "cpu": "i9-13900K",
+                "ram": "32GB",
+                "storage": "1TB SSD"
+              },
+              "in_stock": false
+            }
+          }
+        },
+        "phones": {
+          "name": "手机",
+          "products": {
+            "phone_x": {
+              "name": "Phone X",
+              "price": 6999,
+              "specs": {
+                "screen": "6.7英寸",
+                "battery": "4500mAh",
+                "storage": "256GB"
+              },
+              "in_stock": true
+            }
+          }
+        }
+      },
+      "settings": {
+        "currency": "CNY",
+        "tax_rate": 0.13,
+        "free_shipping_threshold": 99
+      }
+    }
+  },
+  "version": 1,
+  "operations": [
+    {
+      "type": "rollback",
+      "user_name": "系统",
+      "user_id": "fake123",
+      "timestamp": 1781151393.6083512,
+      "applied_version": 1,
+      "from_version": 0,
+      "target_version": 0,
+      "description": "回退: v0 → v0"
+    }
+  ],
+  "snapshots": {
+    "0": {
+      "product_catalog": {
+        "name": "电子产品目录",
+        "version": "1.0.0",
+        "categories": {
+          "computers": {
+            "name": "电脑",
+            "products": {
+              "laptop_pro": {
+                "name": "专业笔记本电脑",
+                "price": 8999,
+                "specs": {
+                  "cpu": "i7-13700H",
+                  "ram": "16GB",
+                  "storage": "512GB SSD"
+                },
+                "in_stock": true
+              },
+              "desktop_elite": {
+                "name": "精英台式机",
+                "price": 12999,
+                "specs": {
+                  "cpu": "i9-13900K",
+                  "ram": "32GB",
+                  "storage": "1TB SSD"
+                },
+                "in_stock": false
+              }
+            }
+          },
+          "phones": {
+            "name": "手机",
+            "products": {
+              "phone_x": {
+                "name": "Phone X",
+                "price": 6999,
+                "specs": {
+                  "screen": "6.7英寸",
+                  "battery": "4500mAh",
+                  "storage": "256GB"
+                },
+                "in_stock": true
+              }
+            }
+          }
+        },
+        "settings": {
+          "currency": "CNY",
+          "tax_rate": 0.13,
+          "free_shipping_threshold": 99
+        }
+      }
+    },
+    "1": {
+      "product_catalog": {
+        "name": "电子产品目录",
+        "version": "1.0.0",
+        "categories": {
+          "computers": {
+            "name": "电脑",
+            "products": {
+              "laptop_pro": {
+                "name": "专业笔记本电脑",
+                "price": 8999,
+                "specs": {
+                  "cpu": "i7-13700H",
+                  "ram": "16GB",
+                  "storage": "512GB SSD"
+                },
+                "in_stock": true
+              },
+              "desktop_elite": {
+                "name": "精英台式机",
+                "price": 12999,
+                "specs": {
+                  "cpu": "i9-13900K",
+                  "ram": "32GB",
+                  "storage": "1TB SSD"
+                },
+                "in_stock": false
+              }
+            }
+          },
+          "phones": {
+            "name": "手机",
+            "products": {
+              "phone_x": {
+                "name": "Phone X",
+                "price": 6999,
+                "specs": {
+                  "screen": "6.7英寸",
+                  "battery": "4500mAh",
+                  "storage": "256GB"
+                },
+                "in_stock": true
+              }
+            }
+          }
+        },
+        "settings": {
+          "currency": "CNY",
+          "tax_rate": 0.13,
+          "free_shipping_threshold": 99
+        }
+      }
+    }
+  }
+}
