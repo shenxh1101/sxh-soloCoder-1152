@@ -14,6 +14,7 @@ app.config['SECRET_KEY'] = 'ot-demo-secret-key-2024'
 socketio = SocketIO(app, cors_allowed_origins='*', ping_timeout=10, ping_interval=5,
                     async_mode='threading')
 
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 DOCUMENTS = {}
 HEARTBEAT_TIMEOUT = 15
 HEARTBEAT_CHECK_INTERVAL = 5
@@ -59,6 +60,115 @@ DEFAULT_DOC = {
         }
     }
 }
+
+
+def _get_value_at(obj, path):
+    current = obj
+    for key in path:
+        if isinstance(current, dict) and key in current:
+            current = current[key]
+        else:
+            return None
+    return current
+
+
+def _set_value_inplace(obj, path, value):
+    if not path:
+        obj.clear()
+        obj.update(value) if isinstance(value, dict) else None
+        return
+    current = obj
+    for key in path[:-1]:
+        if key not in current or not isinstance(current[key], dict):
+            current[key] = {}
+        current = current[key]
+    current[path[-1]] = value
+
+
+def _add_node_inplace(obj, path, key, value):
+    current = obj
+    for k in path:
+        if k not in current or not isinstance(current[k], dict):
+            current[k] = {}
+        current = current[k]
+    if key not in current:
+        current[key] = value
+
+
+def _delete_path_inplace(obj, path):
+    current = obj
+    for key in path[:-1]:
+        if key not in current:
+            return
+        current = current[key]
+    if path[-1] in current:
+        del current[path[-1]]
+
+
+def compute_diff(obj1, obj2, path=None):
+    if path is None:
+        path = []
+    diffs = []
+
+    if type(obj1) != type(obj2):
+        diffs.append({
+            'path': list(path), 'type': 'modified',
+            'from_value': _serializable(obj1), 'to_value': _serializable(obj2)
+        })
+        return diffs
+
+    if isinstance(obj1, dict):
+        all_keys = set(obj1.keys()) | set(obj2.keys())
+        for key in sorted(all_keys):
+            child_path = list(path) + [key]
+            if key in obj1 and key not in obj2:
+                diffs.append({'path': child_path, 'type': 'removed', 'from_value': _serializable(obj1[key])})
+            elif key not in obj1 and key in obj2:
+                diffs.append({'path': child_path, 'type': 'added', 'to_value': _serializable(obj2[key])})
+            elif obj1[key] != obj2[key]:
+                if isinstance(obj1[key], (dict, list)) and isinstance(obj2[key], (dict, list)):
+                    diffs.extend(compute_diff(obj1[key], obj2[key], child_path))
+                else:
+                    diffs.append({
+                        'path': child_path, 'type': 'modified',
+                        'from_value': _serializable(obj1[key]),
+                        'to_value': _serializable(obj2[key])
+                    })
+
+    elif isinstance(obj1, list):
+        max_len = max(len(obj1), len(obj2))
+        for i in range(max_len):
+            child_path = list(path) + [str(i)]
+            if i >= len(obj1):
+                diffs.append({'path': child_path, 'type': 'added', 'to_value': _serializable(obj2[i])})
+            elif i >= len(obj2):
+                diffs.append({'path': child_path, 'type': 'removed', 'from_value': _serializable(obj1[i])})
+            elif obj1[i] != obj2[i]:
+                if isinstance(obj1[i], (dict, list)) and isinstance(obj2[i], (dict, list)):
+                    diffs.extend(compute_diff(obj1[i], obj2[i], child_path))
+                else:
+                    diffs.append({
+                        'path': child_path, 'type': 'modified',
+                        'from_value': _serializable(obj1[i]),
+                        'to_value': _serializable(obj2[i])
+                    })
+    else:
+        if obj1 != obj2:
+            diffs.append({
+                'path': list(path), 'type': 'modified',
+                'from_value': _serializable(obj1), 'to_value': _serializable(obj2)
+            })
+
+    return diffs
+
+
+def _serializable(val):
+    if val is None or isinstance(val, (bool, int, float, str)):
+        return val
+    try:
+        return json.dumps(val, ensure_ascii=False)
+    except (TypeError, ValueError):
+        return str(val)
 
 
 class Document:
@@ -141,6 +251,67 @@ class Document:
         self.operations.append(op)
         if self.version % 5 == 0 or self.version < 5:
             self.snapshots[self.version] = copy.deepcopy(self.data)
+        self._save_to_disk()
+
+    def _save_to_disk(self):
+        try:
+            os.makedirs(DATA_DIR, exist_ok=True)
+            filepath = os.path.join(DATA_DIR, f'{self.doc_id}.json')
+            payload = {
+                'data': self.data,
+                'version': self.version,
+                'operations': self.operations,
+                'snapshots': {str(k): v for k, v in self.snapshots.items()}
+            }
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(payload, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f'[PERSIST] Failed to save doc {self.doc_id}: {e}')
+
+    @staticmethod
+    def load_from_disk(doc_id):
+        filepath = os.path.join(DATA_DIR, f'{doc_id}.json')
+        if not os.path.exists(filepath):
+            return None
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                payload = json.load(f)
+            doc = Document.__new__(Document)
+            doc.doc_id = doc_id
+            doc.data = payload.get('data', copy.deepcopy(DEFAULT_DOC))
+            doc.version = payload.get('version', 0)
+            doc.operations = payload.get('operations', [])
+            doc.snapshots = {int(k): v for k, v in payload.get('snapshots', {}).items()}
+            if 0 not in doc.snapshots:
+                doc.snapshots = {0: copy.deepcopy(doc.data)}
+            doc.clients = {}
+            doc.last_heartbeat = {}
+            return doc
+        except Exception as e:
+            print(f'[PERSIST] Failed to load doc {doc_id}: {e}')
+            return None
+
+    def get_state_at(self, target_version):
+        if target_version < 0 or target_version > self.version:
+            return None
+        nearest_snapshot = max(v for v in self.snapshots if v <= target_version)
+        state = copy.deepcopy(self.snapshots[nearest_snapshot])
+        ops_to_replay = [op for op in self.operations
+                         if nearest_snapshot < op.get('applied_version', 0) <= target_version]
+        ops_to_replay.sort(key=lambda x: x.get('applied_version', 0))
+        for op in ops_to_replay:
+            op_type = op['type']
+            if op_type == 'update':
+                _set_value_inplace(state, op['path'], op['value'])
+            elif op_type == 'add':
+                _add_node_inplace(state, op['path'], op['key'], op['value'])
+            elif op_type == 'delete':
+                _delete_path_inplace(state, op['path'])
+            elif op_type == 'move':
+                val = _get_value_at(state, op['from_path'])
+                _delete_path_inplace(state, op['from_path'])
+                _set_value_inplace(state, op['to_path'], val)
+        return state
 
     def reverse_operation(self, op):
         if op['type'] == 'update':
@@ -206,9 +377,10 @@ class Document:
                            if op.get('applied_version', 0) <= target_version]
         return True
 
-    def register_client(self, client_id, user_name):
+    def register_client(self, client_id, user_name, role='editor'):
         self.clients[client_id] = {
             'user_name': user_name,
+            'role': role,
             'connected_at': time.time(),
             'last_version': 0
         }
@@ -232,7 +404,11 @@ class Document:
 
 def get_or_create_document(doc_id):
     if doc_id not in DOCUMENTS:
-        DOCUMENTS[doc_id] = Document(doc_id)
+        loaded = Document.load_from_disk(doc_id)
+        if loaded:
+            DOCUMENTS[doc_id] = loaded
+        else:
+            DOCUMENTS[doc_id] = Document(doc_id)
     return DOCUMENTS[doc_id]
 
 
@@ -308,9 +484,10 @@ def handle_connect():
 def handle_join(data):
     doc_id = data.get('doc_id', 'default')
     user_name = data.get('user_name', 'Anonymous')
+    role = data.get('role', 'editor')
     doc = get_or_create_document(doc_id)
     join_room(doc_id)
-    doc.register_client(request.sid, user_name)
+    doc.register_client(request.sid, user_name, role)
 
     emit('sync_full', {
         'data': doc.data,
@@ -318,17 +495,20 @@ def handle_join(data):
         'operations': doc.operations,
         'clients': {k: v for k, v in doc.clients.items() if k != request.sid},
         'user_name': user_name,
+        'role': role,
         'doc_id': doc_id
     })
 
+    role_str = '观察者 ' if role == 'observer' else ''
     emit('user_joined', {
         'user_id': request.sid,
         'user_name': user_name,
+        'role': role,
         'clients': {k: v for k, v in doc.clients.items()}
     }, room=doc_id, include_self=False)
 
     emit('operation_log', {
-        'message': f'用户 {user_name} 加入了文档',
+        'message': f'{role_str}用户 {user_name} 加入了文档',
         'type': 'system',
         'timestamp': time.time()
     }, room=doc_id)
@@ -341,10 +521,19 @@ def handle_operation(data):
     conflict_strategy = data.get('conflict_strategy', 'last_writer_wins')
     doc = get_or_create_document(doc_id)
 
+    client_info = doc.clients.get(request.sid, {})
+    if client_info.get('role') == 'observer':
+        emit('operation_rejected', {
+            'original_op': operation,
+            'reason': '观察者模式，无法编辑',
+            'version': doc.version
+        })
+        return
+
     op_doc_version = operation.get('doc_version', 0)
     operation['user_id'] = request.sid
     operation['timestamp'] = time.time()
-    operation['user_name'] = doc.clients.get(request.sid, {}).get('user_name', 'Unknown')
+    operation['user_name'] = client_info.get('user_name', 'Unknown')
 
     if op_doc_version == doc.version:
         old_value = None
@@ -357,6 +546,8 @@ def handle_operation(data):
 
         doc.apply_operation(operation)
         doc.clients[request.sid]['last_version'] = doc.version
+        if operation['type'] == 'update':
+            operation['new_value'] = operation['value']
 
         emit('operation_applied', {
             'operation': operation,
@@ -365,14 +556,24 @@ def handle_operation(data):
             'user_id': request.sid
         }, room=doc_id)
 
-        emit('operation_log', {
+        log_data = {
             'message': f"{operation['user_name']} 执行了 {_op_desc(operation)}",
             'type': 'info',
             'user_name': operation['user_name'],
             'op_type': operation['type'],
             'timestamp': time.time(),
             'version': doc.version
-        }, room=doc_id)
+        }
+        if operation['type'] == 'update':
+            log_data['old_value'] = _serializable(operation.get('old_value'))
+            log_data['new_value'] = _serializable(operation.get('new_value'))
+            if old_value is not None:
+                log_data['message'] += f': {_serializable(old_value)} → {_serializable(operation["value"])}'
+        elif operation['type'] == 'delete':
+            log_data['old_value'] = _serializable(operation.get('old_value'))
+        elif operation['type'] == 'add':
+            log_data['new_value'] = _serializable(operation.get('value'))
+        emit('operation_log', log_data, room=doc_id)
 
     else:
         if op_doc_version < doc.version:
@@ -391,6 +592,8 @@ def handle_operation(data):
 
                 doc.apply_operation(resolved)
                 doc.clients[request.sid]['last_version'] = doc.version
+                if resolved['type'] == 'update':
+                    resolved['new_value'] = resolved['value']
 
                 emit('operation_applied', {
                     'operation': resolved,
@@ -399,24 +602,23 @@ def handle_operation(data):
                     'user_id': request.sid
                 }, room=doc_id)
 
+                log_data = {
+                    'type': 'info',
+                    'user_name': operation['user_name'],
+                    'op_type': resolved['type'],
+                    'timestamp': time.time(),
+                    'version': doc.version
+                }
+                if resolved['type'] == 'update':
+                    log_data['old_value'] = _serializable(resolved.get('old_value'))
+                    log_data['new_value'] = _serializable(resolved.get('value'))
                 if has_conflict:
-                    emit('operation_log', {
-                        'message': f"{operation['user_name']} 的 {_op_desc(resolved)} 覆盖了版本 {conflict_ver} (后提交者获胜)",
-                        'type': 'info',
-                        'user_name': operation['user_name'],
-                        'op_type': resolved['type'],
-                        'timestamp': time.time(),
-                        'version': doc.version
-                    }, room=doc_id)
+                    log_data['message'] = f"{operation['user_name']} 的 {_op_desc(resolved)} 覆盖了版本 {conflict_ver} (后提交者获胜)"
+                    if resolved['type'] == 'update':
+                        log_data['message'] += f': 新值={_serializable(resolved["value"])}'
                 else:
-                    emit('operation_log', {
-                        'message': f"{operation['user_name']} 执行了 {_op_desc(resolved)} (已解决冲突)",
-                        'type': 'info',
-                        'user_name': operation['user_name'],
-                        'op_type': resolved['type'],
-                        'timestamp': time.time(),
-                        'version': doc.version
-                    }, room=doc_id)
+                    log_data['message'] = f"{operation['user_name']} 执行了 {_op_desc(resolved)} (已解决冲突)"
+                emit('operation_log', log_data, room=doc_id)
             else:
                 emit('operation_rejected', {
                     'original_op': operation,
@@ -582,9 +784,40 @@ def get_versions(doc_id):
             'type': op.get('type'),
             'user_name': op.get('user_name', 'Unknown'),
             'timestamp': op.get('timestamp', 0),
-            'description': _op_desc(op)
+            'description': _op_desc(op),
+            'old_value': op.get('old_value')
         })
+        if 'new_value' in op:
+            versions[-1]['new_value'] = op['new_value']
     return jsonify({'versions': versions, 'current_version': doc.version})
+
+
+@app.route('/api/doc/<doc_id>/diff/<int:v1>/<int:v2>')
+def diff_versions(doc_id, v1, v2):
+    doc = get_or_create_document(doc_id)
+    state1 = doc.get_state_at(v1)
+    state2 = doc.get_state_at(v2)
+    if state1 is None or state2 is None:
+        return jsonify({'error': '版本不存在'}), 404
+    diffs = compute_diff(state1, state2)
+    return jsonify({'diff': diffs, 'v1': v1, 'v2': v2})
+
+
+@app.route('/api/doc/<doc_id>/operation/<int:version>')
+def get_operation_detail(doc_id, version):
+    doc = get_or_create_document(doc_id)
+    op = next((o for o in doc.operations if o.get('applied_version', 0) == version), None)
+    if not op:
+        return jsonify({'error': '操作不存在'}), 404
+    detail = dict(op)
+    if op.get('applied_version') > 1:
+        prev_state = doc.get_state_at(version - 1)
+        if prev_state and op.get('path'):
+            detail['before'] = _get_value_at(prev_state, op['path'])
+        current_state = doc.get_state_at(version)
+        if current_state and op.get('path'):
+            detail['after'] = _get_value_at(current_state, op['path'])
+    return jsonify({'operation': detail})
 
 
 @app.route('/api/doc/<doc_id>/rollback/<int:target_version>', methods=['POST'])

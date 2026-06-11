@@ -13,16 +13,15 @@ body {
   height: 100vh;
   overflow: hidden;
 }
-#app { display: flex; flex-direction: column; height: 100vh; }
+#app { display: none; flex-direction: column; height: 100vh; }
+#app.ready { display: flex; }
 
-/* Top Bar */
 #topbar {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 10px;
   padding: 8px 16px;
   background: linear-gradient(135deg, #1a2a3a, #152238);
   border-bottom: 1px solid #2a3a4a;
-  flex-shrink: 0;
-  z-index: 10;
+  flex-shrink: 0; z-index: 10;
 }
 #topbar .logo {
   font-size: 18px; font-weight: 700;
@@ -41,22 +40,28 @@ body {
 #topbar button.primary:hover { background: #4a8be5; }
 #topbar button.danger { background: #5a2020; border-color: #8b3030; color: #ff8080; }
 #topbar button.danger:hover { background: #6a3030; }
+#topbar button:disabled, #topbar button.primary:disabled {
+  opacity: 0.4; cursor: not-allowed; pointer-events: none;
+}
 #status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; flex-shrink: 0; }
 #status-dot.disconnected { background: #f44336; }
 #user-name-display { font-size: 13px; color: #00d2ff; font-weight: 600; }
 #version-display { font-size: 11px; color: #6c7a89; }
+.role-badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px;
+  background: #3a7b3a; color: #81c784;
+}
+.role-badge.observer { background: #5a5a20; color: #ffeb3b; }
 
-/* Main layout */
 #main { display: flex; flex: 1; overflow: hidden; }
 #editor-panel {
   flex: 1; display: flex; flex-direction: column;
   border-right: 1px solid #2a3a4a; overflow: hidden;
 }
 #side-panel {
-  width: 380px; display: flex; flex-direction: column; overflow: hidden;
+  width: 400px; display: flex; flex-direction: column; overflow: hidden;
 }
 
-/* Panel headers */
 .panel-header {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 12px;
@@ -66,28 +71,27 @@ body {
 }
 .panel-header .icon { font-size: 14px; }
 
-/* JSON Tree */
-#tree-container {
-  flex: 1; overflow: auto; padding: 8px 0;
-}
+#tree-container { flex: 1; overflow: auto; padding: 8px 0; }
 .tree-node { font-size: 13px; user-select: none; }
 .tree-node .node-row {
   display: flex; align-items: center; gap: 2px;
   padding: 1px 0; cursor: pointer;
-  transition: background 0.15s;
-  white-space: nowrap;
+  transition: background 0.15s; white-space: nowrap;
 }
 .tree-node .node-row:hover { background: rgba(58,123,213,0.12); }
 .tree-node .node-row.selected { background: rgba(58,123,213,0.25); }
+.tree-node .node-row.diff-highlight {
+  background: rgba(255,152,0,0.3) !important;
+  animation: pulse 0.6s ease-in-out 3;
+}
+@keyframes pulse { 0%,100% { background: rgba(255,152,0,0.3); } 50% { background: rgba(255,152,0,0.1); } }
 .tree-node .indent { display: inline-block; }
 .tree-node .toggle {
   width: 16px; font-size: 10px; text-align: center; cursor: pointer;
   color: #6c7a89; flex-shrink: 0;
 }
 .tree-node .toggle:hover { color: #00d2ff; }
-.tree-node .key {
-  color: #5dade2; font-weight: 500; margin-right: 4px; cursor: default;
-}
+.tree-node .key { color: #5dade2; font-weight: 500; margin-right: 4px; cursor: default; }
 .tree-node .key:hover { text-decoration: underline; }
 .tree-node .colon { color: #6c7a89; margin-right: 4px; }
 .tree-node .type-badge {
@@ -113,33 +117,83 @@ body {
 }
 .tree-node .node-actions button:hover { color: #00d2ff; border-color: #3a7bd5; }
 .tree-node .node-actions button.del-btn:hover { color: #ff8080; border-color: #8b3030; }
-.tree-node .placeholder { color: #3a4a5a; font-style: italic; }
 
-/* Drag */
 .tree-node .node-row.drag-over { outline: 1px dashed #3a7bd5; }
 .tree-node .node-row.dragging { opacity: 0.5; }
+.tree-node .node-row.readonly { cursor: default; }
 
-/* Side Panel */
 #log-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid #2a3a4a; }
 #log-list { flex: 1; overflow: auto; padding: 4px; }
 .log-entry {
   padding: 5px 8px; border-left: 3px solid #2a3a4a; margin: 2px 0;
   font-size: 11px; line-height: 1.4; border-radius: 0 4px 4px 0;
+  cursor: pointer; transition: background 0.15s;
 }
+.log-entry:hover { background: rgba(58,123,213,0.1); }
 .log-entry.system { border-left-color: #6c7a89; color: #6c7a89; }
 .log-entry.info { border-left-color: #3a7bd5; }
 .log-entry .log-time { color: #4a5a6a; margin-right: 6px; }
-.log-entry .log-user { color: #00d2ff; font-weight: 600; }
+
+#log-detail {
+  display: none; padding: 8px; background: #111a24; border-top: 1px solid #2a3a4a;
+  max-height: 120px; overflow: auto; font-size: 11px; flex-shrink: 0;
+}
+#log-detail.active { display: block; }
+#log-detail .detail-row { display: flex; gap: 8px; margin: 2px 0; }
+#log-detail .detail-label { color: #6c7a89; min-width: 50px; }
+#log-detail .detail-old { color: #ff8080; font-family: monospace; word-break: break-all; }
+#log-detail .detail-new { color: #81c784; font-family: monospace; word-break: break-all; }
+#log-detail .detail-arrow { color: #6c7a89; }
+
 #user-section { display: flex; flex-direction: column; flex-shrink: 0; max-height: 180px; }
 #user-list { flex: 1; overflow: auto; padding: 4px; }
 .user-item {
-  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
-  font-size: 12px;
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px; font-size: 12px;
 }
 .user-dot { width: 6px; height: 6px; border-radius: 50%; background: #4caf50; }
 .user-dot.offline { background: #f44336; }
+.user-role { font-size: 10px; color: #ffeb3b; }
 
-/* Modal */
+/* Join Modal */
+#join-overlay {
+  display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: #0f1923; z-index: 300; justify-content: center; align-items: center;
+  flex-direction: column; gap: 16px;
+}
+.join-card {
+  background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 10px;
+  padding: 30px; width: 380px; text-align: center;
+}
+.join-card h1 {
+  font-size: 22px; margin-bottom: 6px;
+  background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.join-card p { color: #6c7a89; font-size: 12px; margin-bottom: 20px; }
+.join-card .form-group { margin-bottom: 12px; text-align: left; }
+.join-card .form-group label { display: block; font-size: 12px; color: #6c7a89; margin-bottom: 4px; }
+.join-card .form-group input {
+  width: 100%; padding: 8px 12px; background: #0f1923; border: 1px solid #2a3a4a;
+  color: #c8d6e5; border-radius: 4px; font-size: 14px;
+}
+.join-card .form-group input:focus { border-color: #3a7bd5; outline: none; }
+.join-card .mode-toggle {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+.join-card .mode-btn {
+  flex: 1; padding: 8px; border: 1px solid #2a3a4a; border-radius: 4px;
+  background: #1e2d3d; color: #c8d6e5; cursor: pointer; font-size: 13px;
+  transition: all 0.2s;
+}
+.join-card .mode-btn:hover { border-color: #3a7bd5; }
+.join-card .mode-btn.active { background: #3a7bd5; border-color: #3a7bd5; color: #fff; }
+.join-card .join-btn {
+  width: 100%; padding: 10px; background: #3a7bd5; border: none;
+  color: #fff; border-radius: 4px; font-size: 14px; cursor: pointer;
+}
+.join-card .join-btn:hover { background: #4a8be5; }
+
+/* Modals */
 .modal-overlay {
   display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center;
@@ -147,7 +201,8 @@ body {
 .modal-overlay.active { display: flex; }
 .modal {
   background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 8px;
-  padding: 20px; min-width: 320px; max-width: 500px;
+  padding: 20px; min-width: 360px; max-width: 700px; max-height: 85vh;
+  overflow: auto;
 }
 .modal h3 { margin-bottom: 12px; color: #00d2ff; }
 .modal .form-group { margin-bottom: 10px; }
@@ -163,7 +218,21 @@ body {
 }
 .modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 
-/* Toast */
+/* Diff List */
+#diff-list { max-height: 400px; overflow: auto; }
+.diff-item {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+  font-size: 11px; border-radius: 3px; margin: 1px 0; cursor: pointer;
+}
+.diff-item:hover { background: rgba(58,123,213,0.15); }
+.diff-item.added { border-left: 3px solid #4caf50; color: #81c784; }
+.diff-item.removed { border-left: 3px solid #f44336; color: #ff8080; }
+.diff-item.modified { border-left: 3px solid #ff9800; color: #ffcc80; }
+.diff-item .diff-icon { font-size: 12px; flex-shrink: 0; }
+.diff-item .diff-path { color: #5dade2; font-weight: 500; }
+.diff-item .diff-val { font-family: monospace; color: #aaa; font-size: 10px; word-break: break-all; }
+.diff-item .diff-arrow { color: #6c7a89; margin: 0 4px; }
+
 #toast {
   position: fixed; bottom: 20px; right: 20px;
   background: #1a3a2a; border: 1px solid #2a5a3a; color: #81c784;
@@ -173,7 +242,6 @@ body {
 #toast.error { background: #3a1a1a; border-color: #5a2a2a; color: #ff8080; }
 #toast.show { display: block; }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: #0f1923; }
 ::-webkit-scrollbar-thumb { background: #2a3a4a; border-radius: 3px; }
@@ -182,11 +250,32 @@ body {
 </head>
 <body>
 
+<div id="join-overlay">
+  <div class="join-card">
+    <h1>🔗 OT 实时协作编辑器</h1>
+    <p>基于操作转换算法的多人协同JSON编辑</p>
+    <div class="form-group">
+      <label>用户名</label>
+      <input type="text" id="join-name" placeholder="输入你的名字...">
+    </div>
+    <div class="form-group">
+      <label>文档ID（相同ID进入同一文档）</label>
+      <input type="text" id="join-docid" value="default" placeholder="输入文档ID...">
+    </div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="editor" onclick="setJoinMode('editor')">✏️ 编辑模式</button>
+      <button class="mode-btn" data-mode="observer" onclick="setJoinMode('observer')">👁️ 只读观察</button>
+    </div>
+    <button class="join-btn" onclick="doJoin()">进入文档</button>
+  </div>
+</div>
+
 <div id="app">
   <div id="topbar">
     <span class="logo">🔗 OT实时协作编辑器</span>
     <span id="status-dot" title="连接状态"></span>
     <span id="user-name-display">未连接</span>
+    <span id="role-badge" class="role-badge"></span>
     <span id="version-display">v0</span>
     <span class="spacer"></span>
     <label>冲突策略:</label>
@@ -194,6 +283,7 @@ body {
       <option value="last_writer_wins">后提交者获胜</option>
       <option value="auto_merge">自动合并</option>
     </select>
+    <button id="btn-diff" title="版本差异对比">🔍 版本对比</button>
     <button id="btn-export" class="primary" title="导出JSON">📥 导出</button>
     <button id="btn-rollback" title="回退到历史版本">⏪ 回退</button>
     <button id="btn-add-root" title="添加根节点">➕ 添加</button>
@@ -210,8 +300,9 @@ body {
     </div>
     <div id="side-panel">
       <div id="log-section">
-        <div class="panel-header"><span class="icon">📋</span> 操作日志</div>
+        <div class="panel-header"><span class="icon">📋</span> 操作日志（点击查看详情）</div>
         <div id="log-list"></div>
+        <div id="log-detail"></div>
       </div>
       <div id="user-section">
         <div class="panel-header"><span class="icon">👥</span> 在线用户</div>
@@ -226,11 +317,36 @@ body {
     <h3>回退到历史版本</h3>
     <div class="form-group">
       <label>选择目标版本</label>
-      <select id="rollback-version-select"></select>
+      <select id="rollback-version-select" onchange="previewRollbackDiff()"></select>
+    </div>
+    <div id="rollback-diff-container" style="display:none;">
+      <label style="font-size:12px;color:#6c7a89;">差异预览（当前 → 目标版本）</label>
+      <div id="rollback-diff-list" style="max-height:250px;overflow:auto;"></div>
     </div>
     <div class="modal-actions">
       <button onclick="closeModal('modal-rollback')">取消</button>
-      <button class="danger" onclick="executeRollback()">确认回退</button>
+      <button class="danger" id="btn-rollback-confirm" onclick="executeRollback()">确认回退</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-diff">
+  <div class="modal" style="max-width:600px;">
+    <h3>版本差异对比</h3>
+    <div style="display:flex;gap:10px;margin-bottom:10px;">
+      <div class="form-group" style="flex:1;margin-bottom:0;">
+        <label>版本 A</label>
+        <select id="diff-v1-select"></select>
+      </div>
+      <div class="form-group" style="flex:1;margin-bottom:0;">
+        <label>版本 B</label>
+        <select id="diff-v2-select"></select>
+      </div>
+    </div>
+    <button class="primary" onclick="loadDiff()" style="width:100%;margin-bottom:8px;">开始对比</button>
+    <div id="diff-list"></div>
+    <div class="modal-actions">
+      <button onclick="closeModal('modal-diff')">关闭</button>
     </div>
   </div>
 </div>
@@ -282,10 +398,9 @@ body {
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
-// ===================== Global State =====================
 let docData = {};
 let docVersion = 0;
-let docId = 'default';
+let docId = '';
 let userId = '';
 let userName = '';
 let socket = null;
@@ -293,24 +408,45 @@ let clients = {};
 let expandedNodes = new Set();
 let selectedPath = null;
 let addNodeTargetPath = null;
+let role = 'editor';
+let moveSourcePath = null;
+let diffTargetPath = null;
+let versionList = [];
 
-// ===================== Connect =====================
+function setJoinMode(mode) {
+  role = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+}
+
+function doJoin() {
+  const name = document.getElementById('join-name').value.trim();
+  if (!name) { showToast('请输入用户名', 'error'); return; }
+  userName = name;
+  docId = document.getElementById('join-docid').value.trim() || 'default';
+  localStorage.setItem('ot_user_name', userName);
+  localStorage.setItem('ot_doc_id', docId);
+  document.getElementById('join-overlay').style.display = 'none';
+  document.getElementById('app').classList.add('ready');
+  initConnection();
+}
+
+(function initJoinDefaults() {
+  const savedName = localStorage.getItem('ot_user_name');
+  const savedDocId = localStorage.getItem('ot_doc_id');
+  if (savedName) document.getElementById('join-name').value = savedName;
+  if (savedDocId) document.getElementById('join-docid').value = savedDocId;
+})();
+
 function initConnection() {
   userId = 'user_' + Math.random().toString(36).substring(2, 8);
-  userName = 'User_' + userId.substring(5).toUpperCase();
-
-  const storedName = localStorage.getItem('ot_user_name');
-  if (storedName) userName = storedName;
-  else localStorage.setItem('ot_user_name', userName);
-
-  socket = io({
-    transports: ['websocket', 'polling']
-  });
+  socket = io({ transports: ['websocket', 'polling'] });
 
   socket.on('connect', () => {
     document.getElementById('status-dot').classList.remove('disconnected');
     document.getElementById('user-name-display').textContent = userName;
-    socket.emit('join', { doc_id: docId, user_name: userName });
+    document.getElementById('role-badge').textContent = role === 'observer' ? '只读' : '编辑';
+    document.getElementById('role-badge').className = 'role-badge ' + role;
+    socket.emit('join', { doc_id: docId, user_name: userName, role: role });
     addLog('已连接到服务器', 'system');
   });
 
@@ -319,28 +455,28 @@ function initConnection() {
     addLog('与服务器断开连接', 'system');
   });
 
-  socket.on('connected', (data) => {
-    userId = data.sid;
-  });
+  socket.on('connected', (data) => { userId = data.sid; });
 
   socket.on('sync_full', (data) => {
     docData = data.data;
     docVersion = data.version;
     docId = data.doc_id;
     clients = data.clients || {};
+    if (data.role) role = data.role;
     updateStatus();
     renderTree();
     updateUserList();
+    applyRoleUI();
     addLog(`已同步完整文档 v${docVersion}`, 'system');
   });
 
   socket.on('sync_operations', (data) => {
-    data.operations.forEach(op => { applyOperationLocally(op); });
+    data.operations.forEach(op => applyOperationLocally(op));
     docData = data.data;
     docVersion = data.version;
     updateStatus();
     renderTree();
-    addLog(`已同步 ${data.operations.length} 个增量操作，当前 v${docVersion}`, 'system');
+    addLog(`已同步 ${data.operations.length} 个增量操作 v${docVersion}`, 'system');
   });
 
   socket.on('sync_required', (data) => {
@@ -361,132 +497,170 @@ function initConnection() {
   });
 
   socket.on('operation_log', (data) => {
-    addLog(data.message, data.type);
+    addLog(data);
   });
 
   socket.on('user_joined', (data) => {
     clients = data.clients || clients;
     updateUserList();
-    addLog(`用户 ${data.user_name} 加入了文档`, 'system');
+    const rl = data.role === 'observer' ? '(观察者) ' : '';
+    addLog({ message: `${rl}用户 ${data.user_name} 加入了文档`, type: 'system' });
   });
 
   socket.on('user_left', (data) => {
     clients = data.clients || clients;
     updateUserList();
-    addLog(`用户 ${data.user_name} 离开了文档`, 'system');
+    addLog({ message: `用户 ${data.user_name} 离开了文档`, type: 'system' });
   });
 }
 
-// ===================== Heartbeat =====================
+function applyRoleUI() {
+  const isObserver = role === 'observer';
+  const btns = ['btn-export', 'btn-rollback', 'btn-add-root', 'btn-raw-json', 'btn-reset', 'btn-diff'];
+  const sel = ['conflict-strategy'];
+  btns.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isObserver; });
+  sel.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isObserver; });
+  document.getElementById('tree-container').classList.toggle('readonly', isObserver);
+}
+
 setInterval(() => {
-  if (socket && socket.connected) {
-    socket.emit('heartbeat', { doc_id: docId });
-  }
+  if (socket && socket.connected) socket.emit('heartbeat', { doc_id: docId });
 }, 3000);
 
-// ===================== Status =====================
 function updateStatus() {
   document.getElementById('version-display').textContent = 'v' + docVersion;
 }
 
-// ===================== Log =====================
-function addLog(message, type) {
-  type = type || 'info';
+function addLog(data) {
+  if (typeof data === 'string') data = { message: data, type: 'info' };
   const list = document.getElementById('log-list');
   const entry = document.createElement('div');
-  entry.className = 'log-entry ' + type;
+  entry.className = 'log-entry ' + (data.type || 'info');
   const now = new Date();
   const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
-  entry.innerHTML = `<span class="log-time">${timeStr}</span>${message}`;
+  entry.innerHTML = `<span class="log-time">${timeStr}</span>${data.message}`;
+  if (data.old_value !== undefined || data.new_value !== undefined || data.version !== undefined) {
+    entry.dataset.oldValue = data.old_value !== undefined ? JSON.stringify(data.old_value) : '';
+    entry.dataset.newValue = data.new_value !== undefined ? JSON.stringify(data.new_value) : '';
+    entry.dataset.version = data.version || '';
+    entry.dataset.opType = data.op_type || '';
+    entry.title = '点击查看详情';
+  }
+  entry.onclick = function() { showLogDetail(entry); };
   list.prepend(entry);
-  if (list.children.length > 200) {
-    list.removeChild(list.lastChild);
+  if (list.children.length > 200) list.removeChild(list.lastChild);
+}
+
+function showLogDetail(entry) {
+  const detail = document.getElementById('log-detail');
+  const oldV = entry.dataset.oldValue && entry.dataset.oldValue !== 'null' ? JSON.parse(entry.dataset.oldValue) : null;
+  const newV = entry.dataset.newValue && entry.dataset.newValue !== 'null' ? JSON.parse(entry.dataset.newValue) : null;
+  const opType = entry.dataset.opType;
+
+  let html = '';
+  if (opType === 'update' && oldV !== null) {
+    html += `<div class="detail-row"><span class="detail-label">旧值:</span><span class="detail-old">${fmt(oldV)}</span></div>`;
+    html += `<div class="detail-arrow" style="margin:2px 8px;">⬇</div>`;
+    html += `<div class="detail-row"><span class="detail-label">新值:</span><span class="detail-new">${fmt(newV)}</span></div>`;
+  } else if (opType === 'delete') {
+    html += `<div class="detail-row"><span class="detail-label">被删除:</span><span class="detail-old">${fmt(oldV)}</span></div>`;
+  } else if (opType === 'add') {
+    html += `<div class="detail-row"><span class="detail-label">新增:</span><span class="detail-new">${fmt(newV)}</span></div>`;
+  } else if (opType === 'move') {
+    html += `<div class="detail-row"><span class="detail-label">内容:</span><span class="detail-new">${fmt(newV)}</span></div>`;
+  }
+  if (html) {
+    detail.innerHTML = html;
+    detail.classList.add('active');
+  } else {
+    detail.classList.remove('active');
   }
 }
 
-// ===================== User List =====================
+function fmt(v) {
+  if (v === null || v === undefined) return 'null';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
 function updateUserList() {
   const list = document.getElementById('user-list');
   list.innerHTML = '';
   const meItem = document.createElement('div');
   meItem.className = 'user-item';
-  meItem.innerHTML = `<span class="user-dot"></span> ${userName} (我)`;
+  const rlBadge = role === 'observer' ? '<span class="user-role">[观察]</span> ' : '';
+  meItem.innerHTML = `<span class="user-dot"></span> ${userName} (我) ${rlBadge}`;
   list.appendChild(meItem);
 
   for (const [cid, info] of Object.entries(clients)) {
     const item = document.createElement('div');
     item.className = 'user-item';
-    item.innerHTML = `<span class="user-dot"></span> ${info.user_name}`;
+    const rBadge = info.role === 'observer' ? '<span class="user-role">[观察]</span> ' : '';
+    item.innerHTML = `<span class="user-dot"></span> ${info.user_name} ${rBadge}`;
     list.appendChild(item);
   }
 }
 
-// ===================== Tree Rendering =====================
-function renderTree() {
+function renderTree(highlightPath) {
   const container = document.getElementById('tree-container');
   container.innerHTML = '';
-  container.appendChild(buildTreeView(docData, [], 'root'));
+  container.appendChild(buildTreeView(docData, [], 'root', highlightPath));
+  if (highlightPath) {
+    setTimeout(() => {
+      const row = document.querySelector(`[data-path="${JSON.stringify(highlightPath)}"]`);
+      if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 50);
+  }
 }
 
-function buildTreeView(obj, path, nodeKey) {
+function buildTreeView(obj, path, nodeKey, highlightPath) {
   const wrapper = document.createElement('div');
   wrapper.className = 'tree-node';
+  const isReadonly = role === 'observer';
 
   if (obj !== null && typeof obj === 'object' && !Array.isArray(obj)) {
-    const row = createNodeRow(nodeKey, 'object', Object.keys(obj).length + ' 个字段', path);
+    const row = createNodeRow(nodeKey, 'object', Object.keys(obj).length + ' 个字段', path, null, isReadonly, highlightPath);
     wrapper.appendChild(row);
-
     const childrenDiv = document.createElement('div');
     childrenDiv.className = 'children';
     const pathKey = JSON.stringify(path);
-    if (!expandedNodes.has(pathKey)) {
-      childrenDiv.style.display = 'none';
-    }
-
+    if (!expandedNodes.has(pathKey)) childrenDiv.style.display = 'none';
     for (const [key, val] of Object.entries(obj)) {
-      childrenDiv.appendChild(buildTreeView(val, [...path, key], key));
+      childrenDiv.appendChild(buildTreeView(val, [...path, key], key, highlightPath));
     }
-
-    const addBtn = document.createElement('div');
-    addBtn.style.cssText = 'padding-left:40px;font-size:11px;color:#3a4a5a;cursor:pointer;margin-top:2px;';
-    addBtn.textContent = '+ 添加字段...';
-    addBtn.onclick = (e) => {
-      e.stopPropagation();
-      openAddNodeModal(path);
-    };
-    childrenDiv.appendChild(addBtn);
-
+    if (!isReadonly) {
+      const addBtn = document.createElement('div');
+      addBtn.style.cssText = 'padding-left:40px;font-size:11px;color:#3a4a5a;cursor:pointer;margin-top:2px;';
+      addBtn.textContent = '+ 添加字段...';
+      addBtn.onclick = (e) => { e.stopPropagation(); openAddNodeModal(path); };
+      childrenDiv.appendChild(addBtn);
+    }
     wrapper.appendChild(childrenDiv);
   } else if (Array.isArray(obj)) {
-    const row = createNodeRow(nodeKey, 'array', `[${obj.length} 项]`, path);
+    const row = createNodeRow(nodeKey, 'array', `[${obj.length} 项]`, path, null, isReadonly, highlightPath);
     wrapper.appendChild(row);
-
     const childrenDiv = document.createElement('div');
     childrenDiv.className = 'children';
     const pathKey = JSON.stringify(path);
-    if (!expandedNodes.has(pathKey)) {
-      childrenDiv.style.display = 'none';
-    }
-
+    if (!expandedNodes.has(pathKey)) childrenDiv.style.display = 'none';
     obj.forEach((val, idx) => {
-      childrenDiv.appendChild(buildTreeView(val, [...path, String(idx)], String(idx)));
+      childrenDiv.appendChild(buildTreeView(val, [...path, String(idx)], String(idx), highlightPath));
     });
-
     wrapper.appendChild(childrenDiv);
   } else {
-    const valDisplay = formatValue(obj);
-    const type = typeof obj;
-    const row = createNodeRow(nodeKey, type, valDisplay, path, obj);
+    const row = createNodeRow(nodeKey, typeof obj, formatValue(obj), path, obj, isReadonly, highlightPath);
     wrapper.appendChild(row);
   }
-
   return wrapper;
 }
 
-function createNodeRow(key, type, display, path, rawValue) {
+function createNodeRow(key, type, display, path, rawValue, isReadonly, highlightPath) {
   const row = document.createElement('div');
-  row.className = 'node-row';
+  row.className = 'node-row' + (isReadonly ? ' readonly' : '');
   row.dataset.path = JSON.stringify(path);
+  if (highlightPath && JSON.stringify(path) === JSON.stringify(highlightPath)) {
+    row.classList.add('diff-highlight');
+  }
   row.onclick = (e) => {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
     selectNode(path, row);
@@ -504,10 +678,7 @@ function createNodeRow(key, type, display, path, rawValue) {
     toggle.className = 'toggle';
     const pathKey = JSON.stringify(path);
     toggle.textContent = expandedNodes.has(pathKey) ? '▼' : '▶';
-    toggle.onclick = (e) => {
-      e.stopPropagation();
-      toggleNode(path);
-    };
+    toggle.onclick = (e) => { e.stopPropagation(); toggleNode(path); };
     row.appendChild(toggle);
   } else {
     const spacer = document.createElement('span');
@@ -538,72 +709,53 @@ function createNodeRow(key, type, display, path, rawValue) {
   else valSpan.textContent = display;
   row.appendChild(valSpan);
 
-  if (path.length > 0) {
+  if (path.length > 0 && !isReadonly) {
     const actions = document.createElement('span');
     actions.className = 'node-actions';
 
     const editBtn = document.createElement('button');
     editBtn.textContent = '✏️';
     editBtn.title = '编辑';
-    editBtn.onclick = (e) => {
-      e.stopPropagation();
-      startInlineEdit(row, path, rawValue, type);
-    };
+    editBtn.onclick = (e) => { e.stopPropagation(); startInlineEdit(row, path, rawValue, type); };
     actions.appendChild(editBtn);
 
     const addBtn = document.createElement('button');
     addBtn.textContent = '➕';
     addBtn.title = '添加子节点';
-    addBtn.onclick = (e) => {
-      e.stopPropagation();
-      openAddNodeModal(path);
-    };
-    if (type !== 'object' && type !== 'array') {
-      addBtn.style.display = 'none';
-    }
+    addBtn.onclick = (e) => { e.stopPropagation(); openAddNodeModal(path); };
+    if (type !== 'object' && type !== 'array') addBtn.style.display = 'none';
     actions.appendChild(addBtn);
 
     const delBtn = document.createElement('button');
     delBtn.textContent = '🗑';
     delBtn.className = 'del-btn';
     delBtn.title = '删除';
-    delBtn.onclick = (e) => {
-      e.stopPropagation();
-      submitOperation('delete', { path: path });
-    };
+    delBtn.onclick = (e) => { e.stopPropagation(); submitOperation('delete', { path: path }); };
     actions.appendChild(delBtn);
 
     const moveBtn = document.createElement('button');
     moveBtn.textContent = '↗️';
     moveBtn.title = '移动（点击后选择目标）';
-    moveBtn.onclick = (e) => {
-      e.stopPropagation();
-      startMove(path);
-    };
+    moveBtn.onclick = (e) => { e.stopPropagation(); startMove(path); };
     actions.appendChild(moveBtn);
 
     row.appendChild(actions);
   }
 
-  row.draggable = true;
-  row.ondragstart = (e) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify(path));
-    row.classList.add('dragging');
-  };
-  row.ondragend = () => row.classList.remove('dragging');
-  row.ondragover = (e) => {
-    e.preventDefault();
-    row.classList.add('drag-over');
-  };
-  row.ondragleave = () => row.classList.remove('drag-over');
-  row.ondrop = (e) => {
-    e.preventDefault();
-    row.classList.remove('drag-over');
-    const fromPath = JSON.parse(e.dataTransfer.getData('text/plain'));
-    if (JSON.stringify(fromPath) !== JSON.stringify(path)) {
-      submitOperation('move', { from_path: fromPath, to_path: path });
-    }
-  };
+  if (!isReadonly) {
+    row.draggable = true;
+    row.ondragstart = (e) => { e.dataTransfer.setData('text/plain', JSON.stringify(path)); row.classList.add('dragging'); };
+    row.ondragend = () => row.classList.remove('dragging');
+    row.ondragover = (e) => { e.preventDefault(); row.classList.add('drag-over'); };
+    row.ondragleave = () => row.classList.remove('drag-over');
+    row.ondrop = (e) => {
+      e.preventDefault(); row.classList.remove('drag-over');
+      const fromPath = JSON.parse(e.dataTransfer.getData('text/plain'));
+      if (JSON.stringify(fromPath) !== JSON.stringify(path)) {
+        submitOperation('move', { from_path: fromPath, to_path: path });
+      }
+    };
+  }
 
   return row;
 }
@@ -619,11 +771,7 @@ function formatValue(val) {
 
 function toggleNode(path) {
   const pathKey = JSON.stringify(path);
-  if (expandedNodes.has(pathKey)) {
-    expandedNodes.delete(pathKey);
-  } else {
-    expandedNodes.add(pathKey);
-  }
+  expandedNodes.has(pathKey) ? expandedNodes.delete(pathKey) : expandedNodes.add(pathKey);
   renderTree();
 }
 
@@ -633,38 +781,34 @@ function selectNode(path, row) {
   if (row) row.classList.add('selected');
 }
 
+function navigateToPath(path) {
+  for (let i = 1; i <= path.length; i++) {
+    expandedNodes.add(JSON.stringify(path.slice(0, i)));
+  }
+  renderTree(path);
+  closeModal('modal-diff');
+  closeModal('modal-rollback');
+  showToast(`已跳转到: /${path.join('/')}`);
+}
+
 // ===================== Inline Edit =====================
 function startInlineEdit(row, path, currentValue, type) {
+  if (role === 'observer') return;
   const valSpan = row.querySelector('[class^="val-"]');
   if (!valSpan) return;
-
   const input = document.createElement('input');
   input.type = 'text';
   input.className = 'node-editor';
-
-  if (type === 'string') {
-    input.value = currentValue;
-  } else if (type === 'number') {
-    input.value = currentValue;
-  } else if (type === 'boolean') {
-    input.value = String(currentValue);
-  } else if (currentValue === null) {
-    input.value = 'null';
-  } else {
-    input.value = JSON.stringify(currentValue);
-  }
-
+  if (type === 'string') { input.value = currentValue; }
+  else if (type === 'number') { input.value = currentValue; }
+  else if (type === 'boolean') { input.value = String(currentValue); }
+  else if (currentValue === null) { input.value = 'null'; }
+  else { input.value = JSON.stringify(currentValue); }
   input.onkeydown = (e) => {
-    if (e.key === 'Enter') {
-      finishInlineEdit(input, valSpan, path, type);
-    } else if (e.key === 'Escape') {
-      input.replaceWith(valSpan);
-    }
+    if (e.key === 'Enter') finishInlineEdit(input, valSpan, path, type);
+    else if (e.key === 'Escape') input.replaceWith(valSpan);
   };
-  input.onblur = () => {
-    finishInlineEdit(input, valSpan, path, type);
-  };
-
+  input.onblur = () => finishInlineEdit(input, valSpan, path, type);
   valSpan.replaceWith(input);
   input.focus();
   input.select();
@@ -673,152 +817,88 @@ function startInlineEdit(row, path, currentValue, type) {
 function finishInlineEdit(input, originalSpan, path, type) {
   const rawValue = input.value.trim();
   let newValue;
-  if (type === 'number') {
-    newValue = Number(rawValue);
-    if (isNaN(newValue)) { input.replaceWith(originalSpan); return; }
-  } else if (type === 'boolean') {
-    if (rawValue.toLowerCase() === 'true') newValue = true;
-    else if (rawValue.toLowerCase() === 'false') newValue = false;
-    else { input.replaceWith(originalSpan); return; }
-  } else if (rawValue === 'null') {
-    newValue = null;
-  } else if (type === 'object' || type === 'array') {
-    try { newValue = JSON.parse(rawValue); } catch (e) { input.replaceWith(originalSpan); return; }
-  } else {
-    newValue = rawValue;
-  }
-
+  if (type === 'number') { newValue = Number(rawValue); if (isNaN(newValue)) { input.replaceWith(originalSpan); return; } }
+  else if (type === 'boolean') { if (rawValue.toLowerCase()==='true') newValue=true; else if (rawValue.toLowerCase()==='false') newValue=false; else { input.replaceWith(originalSpan); return; } }
+  else if (rawValue === 'null') { newValue = null; }
+  else if (type === 'object' || type === 'array') { try { newValue = JSON.parse(rawValue); } catch(e) { input.replaceWith(originalSpan); return; } }
+  else { newValue = rawValue; }
   input.replaceWith(originalSpan);
   submitOperation('update', { path: path, value: newValue });
 }
 
 // ===================== Operations =====================
 function submitOperation(type, params) {
-  if (!socket || !socket.connected) {
-    showToast('未连接到服务器', 'error');
-    return;
-  }
-
+  if (role === 'observer') { showToast('观察者模式，无法编辑', 'error'); return; }
+  if (!socket || !socket.connected) { showToast('未连接到服务器', 'error'); return; }
   const operation = { type: type, doc_version: docVersion, ...params };
-
   socket.emit('submit_operation', {
-    doc_id: docId,
-    operation: operation,
+    doc_id: docId, operation: operation,
     conflict_strategy: document.getElementById('conflict-strategy').value
   });
 }
 
 function applyOperationLocally(op) {
-  const path = op.path;
-  const current = docData;
-
-  if (op.type === 'update') {
-    setValueAtPath(docData, path, op.value);
-  } else if (op.type === 'add') {
-    const parent = getValueAtPath(docData, path);
-    if (parent && typeof parent === 'object' && !Array.isArray(parent)) {
-      parent[op.key] = op.value;
-    }
-  } else if (op.type === 'delete') {
-    deleteAtPath(docData, path);
-  } else if (op.type === 'move') {
+  if (op.type === 'update') setValueAtPath(docData, op.path, op.value);
+  else if (op.type === 'add') { const p = getValueAtPath(docData, op.path); if (p && typeof p === 'object' && !Array.isArray(p)) p[op.key] = op.value; }
+  else if (op.type === 'delete') deleteAtPath(docData, op.path);
+  else if (op.type === 'move') {
     const val = getValueAtPath(docData, op.from_path);
     deleteAtPath(docData, op.from_path);
-    if (val !== undefined) {
-      const parent = getValueAtPath(docData, op.to_path.slice(0, -1));
-      if (parent && typeof parent === 'object') {
-        parent[op.to_path[op.to_path.length - 1]] = val;
-      }
-    }
+    if (val !== undefined) setValueAtPath(docData, op.to_path, val);
   }
 }
 
 function getValueAtPath(obj, path) {
   let current = obj;
-  for (const key of path) {
-    if (current === null || typeof current !== 'object') return undefined;
-    current = current[key];
-  }
+  for (const key of path) { if (current === null || typeof current !== 'object') return undefined; current = current[key]; }
   return current;
 }
 
 function setValueAtPath(obj, path, value) {
   let current = obj;
-  for (let i = 0; i < path.length - 1; i++) {
-    if (!(path[i] in current)) current[path[i]] = {};
-    current = current[path[i]];
-  }
+  for (let i = 0; i < path.length - 1; i++) { if (!(path[i] in current)) current[path[i]] = {}; current = current[path[i]]; }
   current[path[path.length - 1]] = value;
 }
 
 function deleteAtPath(obj, path) {
   let current = obj;
-  for (let i = 0; i < path.length - 1; i++) {
-    if (!(path[i] in current)) return false;
-    current = current[path[i]];
-  }
-  const lastKey = path[path.length - 1];
-  if (Array.isArray(current)) {
-    current.splice(Number(lastKey), 1);
-  } else {
-    delete current[lastKey];
-  }
+  for (let i = 0; i < path.length - 1; i++) { if (!(path[i] in current)) return false; current = current[path[i]]; }
+  const lk = path[path.length - 1];
+  if (Array.isArray(current)) current.splice(Number(lk), 1);
+  else delete current[lk];
   return true;
 }
 
 // ===================== Move =====================
-let moveSourcePath = null;
-
 function startMove(sourcePath) {
-  if (moveSourcePath) {
-    addLog('移动取消', 'system');
-    moveSourcePath = null;
-    document.querySelectorAll('.node-row').forEach(r => r.style.outline = '');
-    return;
-  }
+  if (role === 'observer') return;
+  if (moveSourcePath) { moveSourcePath = null; document.querySelectorAll('.node-row').forEach(r => r.style.outline = ''); addLog('移动取消', 'system'); return; }
   moveSourcePath = sourcePath;
   addLog(`已选择源节点: ${sourcePath.join('/')}，请点击目标节点`, 'system');
-  document.querySelectorAll('.node-row').forEach(r => {
-    r.style.outline = '1px dashed #ff9800';
-    r.style.cursor = 'crosshair';
-    r.onclick = function(e) {
-      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-      const targetPath = JSON.parse(this.dataset.path);
-      if (JSON.stringify(targetPath) !== JSON.stringify(moveSourcePath)) {
-        submitOperation('move', { from_path: moveSourcePath, to_path: targetPath });
-      }
-      moveSourcePath = null;
-      document.querySelectorAll('.node-row').forEach(rr => {
-        rr.style.outline = '';
-        rr.style.cursor = 'pointer';
-      });
-      renderTree();
-    };
-  });
+  document.querySelectorAll('.node-row').forEach(r => { r.style.outline = '1px dashed #ff9800'; r.style.cursor = 'crosshair'; r.onclick = function(e) { if (e.target.tagName==='BUTTON'||e.target.tagName==='INPUT') return; const tp = JSON.parse(this.dataset.path); if (JSON.stringify(tp)!==JSON.stringify(moveSourcePath)) { submitOperation('move',{from_path:moveSourcePath,to_path:tp}); } moveSourcePath=null; document.querySelectorAll('.node-row').forEach(rr=>{rr.style.outline='';rr.style.cursor='pointer';}); renderTree(); }; });
 }
 
-// ===================== Add Node Modal =====================
+// ===================== Add Node =====================
 function openAddNodeModal(path) {
+  if (role === 'observer') return;
   addNodeTargetPath = path;
   document.getElementById('add-node-key').value = '';
   document.getElementById('add-node-value').value = '';
   document.getElementById('add-node-type').value = 'string';
   document.getElementById('add-node-value-group').style.display = 'block';
   document.getElementById('add-node-path').value = JSON.stringify(path);
-  document.getElementById('modal-add-node').classList.add('active');
+  openModal('modal-add-node');
   setTimeout(() => document.getElementById('add-node-key').focus(), 100);
 }
 
 function onAddNodeTypeChange() {
   const type = document.getElementById('add-node-type').value;
-  const valueGroup = document.getElementById('add-node-value-group');
-  valueGroup.style.display = (type === 'object' || type === 'null') ? 'none' : 'block';
+  document.getElementById('add-node-value-group').style.display = (type === 'object' || type === 'null') ? 'none' : 'block';
 }
 
 function executeAddNode() {
   const key = document.getElementById('add-node-key').value.trim();
   if (!key) { showToast('请输入键名', 'error'); return; }
-
   const type = document.getElementById('add-node-type').value;
   const rawValue = document.getElementById('add-node-value').value.trim();
   let value;
@@ -829,8 +909,7 @@ function executeAddNode() {
     case 'null': value = null; break;
     case 'object': value = {}; break;
   }
-
-  submitOperation('add', { path: addNodeTargetPath, key: key, value: value });
+  submitOperation('add', { path: addNodeTargetPath, key, value });
   closeModal('modal-add-node');
 }
 
@@ -850,16 +929,16 @@ function applyRawJson() {
     submitOperation('update', { path: [], value: newData });
     closeModal('modal-raw-json');
     showToast('JSON已应用');
-  } catch (e) {
-    showToast('JSON格式错误: ' + e.message, 'error');
-  }
+  } catch (e) { showToast('JSON格式错误: ' + e.message, 'error'); }
 }
 
-// ===================== Rollback =====================
+// ===================== Rollback with Preview =====================
 document.getElementById('btn-rollback').addEventListener('click', async () => {
+  if (role === 'observer') { showToast('观察者模式，无法回退', 'error'); return; }
   try {
     const resp = await fetch(`/api/doc/${docId}/versions`);
     const data = await resp.json();
+    versionList = data.versions;
     const sel = document.getElementById('rollback-version-select');
     sel.innerHTML = '';
     data.versions.forEach(v => {
@@ -868,15 +947,34 @@ document.getElementById('btn-rollback').addEventListener('click', async () => {
       opt.textContent = `v${v.version} - ${v.description} (${v.user_name})`;
       sel.appendChild(opt);
     });
+    sel.value = String(data.current_version);
+    document.getElementById('rollback-diff-container').style.display = 'none';
+    document.getElementById('rollback-diff-list').innerHTML = '';
     openModal('modal-rollback');
-  } catch (e) {
-    showToast('获取版本列表失败', 'error');
-  }
+  } catch (e) { showToast('获取版本列表失败', 'error'); }
 });
 
+async function previewRollbackDiff() {
+  const targetVersion = parseInt(document.getElementById('rollback-version-select').value);
+  if (targetVersion === docVersion) {
+    document.getElementById('rollback-diff-container').style.display = 'none';
+    return;
+  }
+  try {
+    const resp = await fetch(`/api/doc/${docId}/diff/${targetVersion}/${docVersion}`);
+    const data = await resp.json();
+    const container = document.getElementById('rollback-diff-container');
+    const list = document.getElementById('rollback-diff-list');
+    list.innerHTML = renderDiffItems(data.diff, false);
+    if (data.diff.length === 0) {
+      list.innerHTML = '<div style="color:#6c7a89;font-size:11px;">无差异</div>';
+    }
+    container.style.display = 'block';
+  } catch (e) { /* ignore */ }
+}
+
 async function executeRollback() {
-  const sel = document.getElementById('rollback-version-select');
-  const targetVersion = parseInt(sel.value);
+  const targetVersion = parseInt(document.getElementById('rollback-version-select').value);
   try {
     const resp = await fetch(`/api/doc/${docId}/rollback/${targetVersion}`, { method: 'POST' });
     const data = await resp.json();
@@ -886,9 +984,67 @@ async function executeRollback() {
     } else {
       showToast('回退失败: ' + (data.error || '未知错误'), 'error');
     }
-  } catch (e) {
-    showToast('回退请求失败', 'error');
-  }
+  } catch (e) { showToast('回退请求失败', 'error'); }
+}
+
+// ===================== Version Diff =====================
+document.getElementById('btn-diff').addEventListener('click', async () => {
+  try {
+    const resp = await fetch(`/api/doc/${docId}/versions`);
+    const data = await resp.json();
+    versionList = data.versions;
+    const s1 = document.getElementById('diff-v1-select');
+    const s2 = document.getElementById('diff-v2-select');
+    s1.innerHTML = ''; s2.innerHTML = '';
+    data.versions.forEach(v => {
+      const o1 = new Option(`v${v.version} - ${v.description} (${v.user_name})`, v.version);
+      const o2 = new Option(`v${v.version} - ${v.description} (${v.user_name})`, v.version);
+      s1.appendChild(o1); s2.appendChild(o2);
+    });
+    if (data.versions.length > 1) {
+      s2.value = String(data.current_version);
+      s1.value = String(data.versions[data.versions.length - 2]?.version || 0);
+    }
+    document.getElementById('diff-list').innerHTML = '';
+    openModal('modal-diff');
+  } catch (e) { showToast('获取版本列表失败', 'error'); }
+});
+
+async function loadDiff() {
+  const v1 = parseInt(document.getElementById('diff-v1-select').value);
+  const v2 = parseInt(document.getElementById('diff-v2-select').value);
+  try {
+    const resp = await fetch(`/api/doc/${docId}/diff/${v1}/${v2}`);
+    const data = await resp.json();
+    document.getElementById('diff-list').innerHTML = renderDiffItems(data.diff, true);
+  } catch (e) { showToast('获取差异失败', 'error'); }
+}
+
+function renderDiffItems(diffs, showNav) {
+  if (!diffs || diffs.length === 0) return '<div style="color:#6c7a89;font-size:11px;">无差异</div>';
+  return diffs.map(d => {
+    const icons = { added: '⊕', removed: '⊖', modified: '↔' };
+    let valHtml = '';
+    if (d.type === 'modified') {
+      valHtml = `<span class="diff-val">${trunc(d.from_value)}</span><span class="diff-arrow">→</span><span class="diff-val">${trunc(d.to_value)}</span>`;
+    } else if (d.type === 'added') {
+      valHtml = `<span class="diff-val">${trunc(d.to_value)}</span>`;
+    } else {
+      valHtml = `<span class="diff-val">${trunc(d.from_value)}</span>`;
+    }
+    const navFn = showNav ? `onclick="navigateToPath(${JSON.stringify(d.path)})"` : '';
+    return `<div class="diff-item ${d.type}" ${navFn}>
+      <span class="diff-icon">${icons[d.type]}</span>
+      <span class="diff-path">/${d.path.join('/')}</span>
+      ${valHtml}
+    </div>`;
+  }).join('');
+}
+
+function trunc(v) {
+  if (v === null || v === undefined) return 'null';
+  const s = typeof v === 'string' ? v : JSON.stringify(v);
+  return s.length > 40 ? s.substring(0, 37) + '...' : s;
 }
 
 // ===================== Export =====================
@@ -903,6 +1059,7 @@ document.getElementById('btn-add-root').addEventListener('click', () => {
 
 // ===================== Reset =====================
 document.getElementById('btn-reset').addEventListener('click', () => {
+  if (role === 'observer') { showToast('观察者模式，无法重置', 'error'); return; }
   if (!confirm('确定要重置文档吗？所有数据将丢失。')) return;
   fetch(`/api/doc/${docId}/rollback/0`, { method: 'POST' })
     .then(() => showToast('文档已重置'))
@@ -915,31 +1072,17 @@ function showToast(message, type) {
   toast.textContent = message;
   toast.className = type === 'error' ? 'error show' : 'show';
   clearTimeout(toast._timeout);
-  toast._timeout = setTimeout(() => {
-    toast.classList.remove('show');
-  }, 2500);
+  toast._timeout = setTimeout(() => { toast.classList.remove('show'); }, 2500);
 }
 
 // ===================== Keyboard =====================
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    closeModal('modal-rollback');
-    closeModal('modal-raw-json');
-    closeModal('modal-add-node');
-    if (moveSourcePath) {
-      moveSourcePath = null;
-      document.querySelectorAll('.node-row').forEach(r => {
-        r.style.outline = '';
-        r.style.cursor = 'pointer';
-      });
-      addLog('移动已取消', 'system');
-    }
+    closeModal('modal-rollback'); closeModal('modal-raw-json');
+    closeModal('modal-add-node'); closeModal('modal-diff');
+    if (moveSourcePath) { moveSourcePath = null; document.querySelectorAll('.node-row').forEach(r => { r.style.outline = ''; r.style.cursor = 'pointer'; }); addLog('移动已取消', 'system'); }
   }
 });
-
-// ===================== Init =====================
-initConnection();
 </script>
-
 </body>
 </html>
