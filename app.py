@@ -81,6 +81,9 @@ class Document:
         return current
 
     def set_value(self, path, value):
+        if not path:
+            self.data = value
+            return
         current = self.data
         for key in path[:-1]:
             if key not in current or not isinstance(current[key], dict):
@@ -182,20 +185,25 @@ class Document:
     def rollback_to(self, target_version):
         if target_version > self.version or target_version < 0:
             return False
-        if target_version in self.snapshots:
-            self.data = copy.deepcopy(self.snapshots[target_version])
-            self.version = target_version
-            self.operations = [op for op in self.operations
-                               if op.get('applied_version', 0) <= target_version]
-            return True
-        ops_to_reverse = [op for op in self.operations
-                          if op.get('applied_version', 0) > target_version]
-        ops_to_reverse.sort(key=lambda x: x.get('applied_version', 0), reverse=True)
-        for op in ops_to_reverse:
-            rev = self.reverse_operation(op)
-            if rev:
-                self.apply_operation(rev)
-                self.version += 1
+        nearest_snapshot = max(v for v in self.snapshots if v <= target_version)
+        self.data = copy.deepcopy(self.snapshots[nearest_snapshot])
+        self.version = nearest_snapshot
+        ops_to_replay = [op for op in self.operations
+                         if nearest_snapshot < op.get('applied_version', 0) <= target_version]
+        ops_to_replay.sort(key=lambda x: x.get('applied_version', 0))
+        for op in ops_to_replay:
+            op_type = op['type']
+            if op_type == 'update':
+                self.set_value(op['path'], op['value'])
+            elif op_type == 'add':
+                self.add_node(op['path'], op['key'], op['value'])
+            elif op_type == 'delete':
+                self.delete_path(op['path'])
+            elif op_type == 'move':
+                self.move_node(op['from_path'], op['to_path'])
+            self.version += 1
+        self.operations = [op for op in self.operations
+                           if op.get('applied_version', 0) <= target_version]
         return True
 
     def register_client(self, client_id, user_name):
@@ -254,7 +262,9 @@ def transform(op1, op2):
 
     if t1 == 'update' and t2 == 'update':
         if op1['path'] == op2['path']:
-            return None
+            transformed['_conflict'] = True
+            transformed['_conflict_with'] = op2.get('applied_version')
+            return transformed
 
     elif t1 == 'update' and t2 == 'delete':
         if op1['path'] == op2['path'] or is_ancestor_path(op2['path'], op1['path']):
@@ -368,6 +378,9 @@ def handle_operation(data):
         if op_doc_version < doc.version:
             resolved = _resolve_conflict(doc, operation, op_doc_version, conflict_strategy)
             if resolved:
+                has_conflict = resolved.pop('_conflict', False)
+                conflict_ver = resolved.pop('_conflict_with', None)
+
                 old_value = None
                 if resolved['type'] in ('update', 'delete'):
                     old_value = doc.get_value(resolved['path'])
@@ -386,14 +399,24 @@ def handle_operation(data):
                     'user_id': request.sid
                 }, room=doc_id)
 
-                emit('operation_log', {
-                    'message': f"{operation['user_name']} 执行了 {_op_desc(resolved)} (已解决冲突)",
-                    'type': 'info',
-                    'user_name': operation['user_name'],
-                    'op_type': resolved['type'],
-                    'timestamp': time.time(),
-                    'version': doc.version
-                }, room=doc_id)
+                if has_conflict:
+                    emit('operation_log', {
+                        'message': f"{operation['user_name']} 的 {_op_desc(resolved)} 覆盖了版本 {conflict_ver} (后提交者获胜)",
+                        'type': 'info',
+                        'user_name': operation['user_name'],
+                        'op_type': resolved['type'],
+                        'timestamp': time.time(),
+                        'version': doc.version
+                    }, room=doc_id)
+                else:
+                    emit('operation_log', {
+                        'message': f"{operation['user_name']} 执行了 {_op_desc(resolved)} (已解决冲突)",
+                        'type': 'info',
+                        'user_name': operation['user_name'],
+                        'op_type': resolved['type'],
+                        'timestamp': time.time(),
+                        'version': doc.version
+                    }, room=doc_id)
             else:
                 emit('operation_rejected', {
                     'original_op': operation,
@@ -546,7 +569,13 @@ def export_doc(doc_id):
 @app.route('/api/doc/<doc_id>/versions')
 def get_versions(doc_id):
     doc = get_or_create_document(doc_id)
-    versions = []
+    versions = [{
+        'version': 0,
+        'type': 'init',
+        'user_name': 'System',
+        'timestamp': 0,
+        'description': '初始文档状态'
+    }]
     for op in doc.operations:
         versions.append({
             'version': op.get('applied_version', 0),

@@ -349,7 +349,6 @@ function initConnection() {
   });
 
   socket.on('operation_applied', (data) => {
-    if (data.user_id === userId) return;
     docData = data.data;
     docVersion = data.version;
     updateStatus();
@@ -848,12 +847,7 @@ document.getElementById('btn-raw-json').addEventListener('click', () => {
 function applyRawJson() {
   try {
     const newData = JSON.parse(document.getElementById('raw-json-text').value);
-    docVersion += 100;
-    submitOperation('update', {
-      path: [],
-      value: newData,
-      doc_version: docVersion
-    });
+    submitOperation('update', { path: [], value: newData });
     closeModal('modal-raw-json');
     showToast('JSON已应用');
   } catch (e) {
