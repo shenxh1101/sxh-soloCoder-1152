@@ -238,7 +238,7 @@ class Document:
 
     def apply_operation(self, op):
         op_type = op['type']
-        if op_type == 'update':
+        if op_type in ('update', 'replace'):
             self.set_value(op['path'], op['value'])
         elif op_type == 'add':
             self.add_node(op['path'], op['key'], op['value'])
@@ -301,7 +301,7 @@ class Document:
         ops_to_replay.sort(key=lambda x: x.get('applied_version', 0))
         for op in ops_to_replay:
             op_type = op['type']
-            if op_type == 'update':
+            if op_type in ('update', 'replace'):
                 _set_value_inplace(state, op['path'], op['value'])
             elif op_type == 'add':
                 _add_node_inplace(state, op['path'], op['key'], op['value'])
@@ -375,6 +375,9 @@ class Document:
             self.version += 1
         self.operations = [op for op in self.operations
                            if op.get('applied_version', 0) <= target_version]
+        if self.version % 5 == 0 or self.version < 5:
+            self.snapshots[self.version] = copy.deepcopy(self.data)
+        self._save_to_disk()
         return True
 
     def register_client(self, client_id, user_name, role='editor'):
@@ -436,13 +439,13 @@ def transform(op1, op2):
 
     t1, t2 = op1['type'], op2['type']
 
-    if t1 == 'update' and t2 == 'update':
+    if t1 in ('update', 'replace') and t2 in ('update', 'replace'):
         if op1['path'] == op2['path']:
             transformed['_conflict'] = True
             transformed['_conflict_with'] = op2.get('applied_version')
             return transformed
 
-    elif t1 == 'update' and t2 == 'delete':
+    elif t1 in ('update', 'replace') and t2 == 'delete':
         if op1['path'] == op2['path'] or is_ancestor_path(op2['path'], op1['path']):
             return None
 
@@ -541,12 +544,15 @@ def handle_operation(data):
             old_value = doc.get_value(operation['path'])
         if operation['type'] == 'move':
             old_value = doc.get_value(operation['from_path'])
+        if operation['type'] == 'update' and not operation.get('path'):
+            operation['type'] = 'replace'
+            operation['description'] = '整份文档替换'
         if old_value is not None:
             operation['old_value'] = old_value
 
         doc.apply_operation(operation)
         doc.clients[request.sid]['last_version'] = doc.version
-        if operation['type'] == 'update':
+        if operation['type'] in ('update', 'replace'):
             operation['new_value'] = operation['value']
 
         emit('operation_applied', {
@@ -579,8 +585,8 @@ def handle_operation(data):
         if op_doc_version < doc.version:
             resolved = _resolve_conflict(doc, operation, op_doc_version, conflict_strategy)
             if resolved:
-                has_conflict = resolved.pop('_conflict', False)
-                conflict_ver = resolved.pop('_conflict_with', None)
+                has_conflict = resolved.get('_conflict', False)
+                conflict_ver = resolved.get('_conflict_with', None)
 
                 old_value = None
                 if resolved['type'] in ('update', 'delete'):
@@ -670,6 +676,10 @@ def _op_desc(op):
         from_str = '/'.join(str(p) for p in op.get('from_path', []))
         to_str = '/'.join(str(p) for p in op.get('to_path', []))
         return f'移动节点 ({from_str} -> {to_str})'
+    elif t == 'rollback':
+        return f'回退操作 (目标版本: {op.get("target_version", "?")})'
+    elif t == 'replace':
+        return '整份文档替换'
     return '未知操作'
 
 
@@ -803,6 +813,82 @@ def diff_versions(doc_id, v1, v2):
     return jsonify({'diff': diffs, 'v1': v1, 'v2': v2})
 
 
+@app.route('/api/doc/<doc_id>/version/<int:version>')
+def version_detail(doc_id, version):
+    doc = get_or_create_document(doc_id)
+    state = doc.get_state_at(version)
+    if state is None:
+        return jsonify({'error': '版本不存在'}), 404
+    meta = None
+    for op in doc.operations:
+        if op.get('applied_version', 0) == version:
+            meta = {
+                'type': op.get('type'),
+                'user_name': op.get('user_name', 'Unknown'),
+                'timestamp': op.get('timestamp', 0),
+                'description': _op_desc(op),
+                'old_value': op.get('old_value'),
+                'new_value': op.get('new_value'),
+                'path': op.get('path')
+            }
+            break
+    if not meta:
+        meta = {'type': 'init', 'user_name': 'System', 'timestamp': 0, 'description': '初始文档状态'}
+    prev_state = doc.get_state_at(max(0, version - 1)) if version > 0 else None
+    diff_from_prev = compute_diff(prev_state, state) if prev_state else None
+    return jsonify({
+        'data': state,
+        'version': version,
+        'meta': meta,
+        'diff_from_prev': diff_from_prev
+    })
+
+
+@app.route('/api/doc/<doc_id>/audit')
+def audit_operations(doc_id):
+    doc = get_or_create_document(doc_id)
+    user_name = request.args.get('user_name', '')
+    op_type = request.args.get('op_type', '')
+    from_ver = request.args.get('from_ver', type=int)
+    to_ver = request.args.get('to_ver', type=int)
+
+    filtered = []
+    conflicts = []
+    for op in doc.operations:
+        v = op.get('applied_version', 0)
+        if user_name and op.get('user_name', '') != user_name:
+            continue
+        if op_type and op.get('type', '') != op_type:
+            continue
+        if from_ver is not None and v < from_ver:
+            continue
+        if to_ver is not None and v > to_ver:
+            continue
+        entry = {
+            'version': v,
+            'type': op.get('type'),
+            'user_name': op.get('user_name', 'Unknown'),
+            'timestamp': op.get('timestamp', 0),
+            'description': _op_desc(op),
+            'old_value': op.get('old_value'),
+            'new_value': op.get('new_value')
+        }
+        if op.get('_conflict_with'):
+            entry['conflict'] = True
+            entry['conflict_with_version'] = op.get('_conflict_with')
+            entry['conflict_desc'] = f"{op.get('user_name')} 的 {_op_desc(op)} 覆盖了版本 {op.get('_conflict_with')} 的修改"
+        filtered.append(entry)
+        if entry.get('conflict'):
+            conflicts.append(entry)
+
+    return jsonify({
+        'filtered': filtered,
+        'conflicts': conflicts,
+        'total': len(filtered),
+        'conflict_count': len(conflicts)
+    })
+
+
 @app.route('/api/doc/<doc_id>/operation/<int:version>')
 def get_operation_detail(doc_id, version):
     doc = get_or_create_document(doc_id)
@@ -823,10 +909,29 @@ def get_operation_detail(doc_id, version):
 @app.route('/api/doc/<doc_id>/rollback/<int:target_version>', methods=['POST'])
 def rollback_doc(doc_id, target_version):
     doc = get_or_create_document(doc_id)
+    user_id = request.args.get('sid', '')
+    if user_id and doc.clients.get(user_id, {}).get('role') == 'observer':
+        return jsonify({'success': False, 'error': '观察者模式，无法回退'}), 403
+    old_version = doc.version
     success = doc.rollback_to(target_version)
     if success:
+        doc.version += 1
+        new_ver = doc.version
+        doc.operations.append({
+            'type': 'rollback',
+            'user_name': '系统',
+            'user_id': user_id or 'system',
+            'timestamp': time.time(),
+            'applied_version': new_ver,
+            'from_version': old_version,
+            'target_version': target_version,
+            'description': f'回退: v{old_version} → v{target_version}'
+        })
+        if new_ver % 5 == 0 or new_ver < 5:
+            doc.snapshots[new_ver] = copy.deepcopy(doc.data)
+        doc._save_to_disk()
         socketio.emit('operation_log', {
-            'message': f'文档已回退到版本 {target_version}',
+            'message': f'文档已回退到版本 {target_version} (from v{old_version})，当前版本 v{new_ver}',
             'type': 'system',
             'timestamp': time.time()
         }, room=doc_id)

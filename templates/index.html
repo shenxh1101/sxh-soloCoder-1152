@@ -47,36 +47,37 @@ body {
 #status-dot.disconnected { background: #f44336; }
 #user-name-display { font-size: 13px; color: #00d2ff; font-weight: 600; }
 #version-display { font-size: 11px; color: #6c7a89; }
-.role-badge {
-  font-size: 10px; padding: 1px 6px; border-radius: 3px;
-  background: #3a7b3a; color: #81c784;
-}
+.role-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: #3a7b3a; color: #81c784; }
 .role-badge.observer { background: #5a5a20; color: #ffeb3b; }
 
 #main { display: flex; flex: 1; overflow: hidden; }
-#editor-panel {
-  flex: 1; display: flex; flex-direction: column;
-  border-right: 1px solid #2a3a4a; overflow: hidden;
-}
-#side-panel {
-  width: 400px; display: flex; flex-direction: column; overflow: hidden;
-}
+#editor-panel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #2a3a4a; overflow: hidden; }
+#side-panel { width: 420px; display: flex; flex-direction: column; overflow: hidden; }
 
 .panel-header {
   display: flex; align-items: center; gap: 8px;
-  padding: 6px 12px;
-  background: #152238; border-bottom: 1px solid #2a3a4a;
+  padding: 6px 12px; background: #152238; border-bottom: 1px solid #2a3a4a;
   font-size: 12px; font-weight: 600; text-transform: uppercase;
   letter-spacing: 0.5px; flex-shrink: 0;
 }
 .panel-header .icon { font-size: 14px; }
 
+/* Tabs */
+#side-tabs { display: flex; flex-shrink: 0; border-bottom: 1px solid #2a3a4a; }
+#side-tabs .tab-btn {
+  flex: 1; padding: 7px 4px; background: #111a24; border: none; border-bottom: 2px solid transparent;
+  color: #6c7a89; font-size: 11px; cursor: pointer; transition: all 0.2s;
+}
+#side-tabs .tab-btn:hover { color: #c8d6e5; }
+#side-tabs .tab-btn.active { color: #00d2ff; border-bottom-color: #3a7bd5; background: #152238; }
+.tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.tab-content.active { display: flex; }
+
 #tree-container { flex: 1; overflow: auto; padding: 8px 0; }
 .tree-node { font-size: 13px; user-select: none; }
 .tree-node .node-row {
   display: flex; align-items: center; gap: 2px;
-  padding: 1px 0; cursor: pointer;
-  transition: background 0.15s; white-space: nowrap;
+  padding: 1px 0; cursor: pointer; transition: background 0.15s; white-space: nowrap;
 }
 .tree-node .node-row:hover { background: rgba(58,123,213,0.12); }
 .tree-node .node-row.selected { background: rgba(58,123,213,0.25); }
@@ -84,7 +85,7 @@ body {
   background: rgba(255,152,0,0.3) !important;
   animation: pulse 0.6s ease-in-out 3;
 }
-@keyframes pulse { 0%,100% { background: rgba(255,152,0,0.3); } 50% { background: rgba(255,152,0,0.1); } }
+@keyframes pulse { 0%,100% { background: rgba(255,152,0,0.3); } 50% { background: rgba(255,152,0,0.05); } }
 .tree-node .indent { display: inline-block; }
 .tree-node .toggle {
   width: 16px; font-size: 10px; text-align: center; cursor: pointer;
@@ -117,12 +118,11 @@ body {
 }
 .tree-node .node-actions button:hover { color: #00d2ff; border-color: #3a7bd5; }
 .tree-node .node-actions button.del-btn:hover { color: #ff8080; border-color: #8b3030; }
-
 .tree-node .node-row.drag-over { outline: 1px dashed #3a7bd5; }
 .tree-node .node-row.dragging { opacity: 0.5; }
 .tree-node .node-row.readonly { cursor: default; }
 
-#log-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid #2a3a4a; }
+/* Log tab */
 #log-list { flex: 1; overflow: auto; padding: 4px; }
 .log-entry {
   padding: 5px 8px; border-left: 3px solid #2a3a4a; margin: 2px 0;
@@ -133,7 +133,6 @@ body {
 .log-entry.system { border-left-color: #6c7a89; color: #6c7a89; }
 .log-entry.info { border-left-color: #3a7bd5; }
 .log-entry .log-time { color: #4a5a6a; margin-right: 6px; }
-
 #log-detail {
   display: none; padding: 8px; background: #111a24; border-top: 1px solid #2a3a4a;
   max-height: 120px; overflow: auto; font-size: 11px; flex-shrink: 0;
@@ -145,13 +144,56 @@ body {
 #log-detail .detail-new { color: #81c784; font-family: monospace; word-break: break-all; }
 #log-detail .detail-arrow { color: #6c7a89; }
 
-#user-section { display: flex; flex-direction: column; flex-shrink: 0; max-height: 180px; }
-#user-list { flex: 1; overflow: auto; padding: 4px; }
-.user-item {
-  display: flex; align-items: center; gap: 6px; padding: 4px 8px; font-size: 12px;
+/* Diff tab */
+#diff-tab-controls { padding: 8px; display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid #2a3a4a; flex-shrink: 0; }
+#diff-tab-controls select { flex: 1; min-width: 0; background: #0f1923; border: 1px solid #2a3a4a; color: #c8d6e5; padding: 4px 6px; border-radius: 3px; font-size: 11px; }
+#diff-tab-controls button { background: #2a3a5a; border: 1px solid #3a7bd5; color: #c8d6e5; padding: 4px 10px; border-radius: 3px; font-size: 11px; cursor: pointer; }
+#diff-tab-controls button:hover { background: #3a7bd5; }
+#diff-result-list { flex: 1; overflow: auto; padding: 4px; }
+.diff-item {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+  font-size: 11px; border-radius: 3px; margin: 1px 0; cursor: pointer;
+  transition: background 0.15s;
 }
-.user-dot { width: 6px; height: 6px; border-radius: 50%; background: #4caf50; }
-.user-dot.offline { background: #f44336; }
+.diff-item:hover { background: rgba(58,123,213,0.15) !important; }
+.diff-item.added { border-left: 3px solid #4caf50; color: #81c784; }
+.diff-item.removed { border-left: 3px solid #f44336; color: #ff8080; }
+.diff-item.modified { border-left: 3px solid #ff9800; color: #ffcc80; }
+.diff-item .diff-icon { font-size: 12px; flex-shrink: 0; }
+.diff-item .diff-path { color: #5dade2; font-weight: 500; }
+.diff-item .diff-val { font-family: monospace; color: #aaa; font-size: 10px; word-break: break-all; }
+.diff-item .diff-arrow { color: #6c7a89; margin: 0 4px; }
+
+/* Audit tab */
+#audit-controls { padding: 8px; display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid #2a3a4a; flex-shrink: 0; }
+#audit-controls select, #audit-controls input {
+  background: #0f1923; border: 1px solid #2a3a4a; color: #c8d6e5;
+  padding: 4px 6px; border-radius: 3px; font-size: 11px; min-width: 0;
+}
+#audit-controls input { width: 60px; }
+#audit-controls button { background: #2a3a5a; border: 1px solid #3a7bd5; color: #c8d6e5; padding: 4px 8px; border-radius: 3px; font-size: 11px; cursor: pointer; }
+#audit-controls button:hover { background: #3a7bd5; }
+#audit-list { flex: 1; overflow: auto; padding: 4px; }
+.audit-entry {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+  font-size: 11px; border-left: 3px solid #2a3a4a; margin: 1px 0;
+  border-radius: 0 3px 3px 0; cursor: pointer;
+}
+.audit-entry:hover { background: rgba(58,123,213,0.1); }
+.audit-entry.conflict { border-left-color: #ff9800; background: rgba(255,152,0,0.05); }
+.audit-entry .audit-ver { color: #6c7a89; min-width: 30px; }
+.audit-entry .audit-usr { color: #00d2ff; min-width: 70px; }
+.audit-entry .audit-type { color: #5dade2; font-size: 10px; min-width: 50px; }
+.audit-entry .audit-desc { color: #c8d6e5; flex: 1; }
+.audit-entry .audit-conflict-badge { color: #ff9800; font-size: 10px; font-weight: 600; }
+
+/* User section */
+#user-section { flex-shrink: 0; border-top: 1px solid #2a3a4a; max-height: 100px; overflow: auto; }
+#user-list { padding: 4px; }
+.user-item {
+  display: flex; align-items: center; gap: 6px; padding: 2px 8px; font-size: 11px;
+}
+.user-dot { width: 5px; height: 5px; border-radius: 50%; background: #4caf50; }
 .user-role { font-size: 10px; color: #ffeb3b; }
 
 /* Join Modal */
@@ -164,33 +206,17 @@ body {
   background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 10px;
   padding: 30px; width: 380px; text-align: center;
 }
-.join-card h1 {
-  font-size: 22px; margin-bottom: 6px;
-  background: linear-gradient(135deg, #00d2ff, #3a7bd5);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
+.join-card h1 { font-size: 22px; margin-bottom: 6px; background: linear-gradient(135deg, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .join-card p { color: #6c7a89; font-size: 12px; margin-bottom: 20px; }
 .join-card .form-group { margin-bottom: 12px; text-align: left; }
 .join-card .form-group label { display: block; font-size: 12px; color: #6c7a89; margin-bottom: 4px; }
-.join-card .form-group input {
-  width: 100%; padding: 8px 12px; background: #0f1923; border: 1px solid #2a3a4a;
-  color: #c8d6e5; border-radius: 4px; font-size: 14px;
-}
+.join-card .form-group input { width: 100%; padding: 8px 12px; background: #0f1923; border: 1px solid #2a3a4a; color: #c8d6e5; border-radius: 4px; font-size: 14px; }
 .join-card .form-group input:focus { border-color: #3a7bd5; outline: none; }
-.join-card .mode-toggle {
-  display: flex; gap: 8px; margin-bottom: 16px;
-}
-.join-card .mode-btn {
-  flex: 1; padding: 8px; border: 1px solid #2a3a4a; border-radius: 4px;
-  background: #1e2d3d; color: #c8d6e5; cursor: pointer; font-size: 13px;
-  transition: all 0.2s;
-}
+.join-card .mode-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+.join-card .mode-btn { flex: 1; padding: 8px; border: 1px solid #2a3a4a; border-radius: 4px; background: #1e2d3d; color: #c8d6e5; cursor: pointer; font-size: 13px; transition: all 0.2s; }
 .join-card .mode-btn:hover { border-color: #3a7bd5; }
 .join-card .mode-btn.active { background: #3a7bd5; border-color: #3a7bd5; color: #fff; }
-.join-card .join-btn {
-  width: 100%; padding: 10px; background: #3a7bd5; border: none;
-  color: #fff; border-radius: 4px; font-size: 14px; cursor: pointer;
-}
+.join-card .join-btn { width: 100%; padding: 10px; background: #3a7bd5; border: none; color: #fff; border-radius: 4px; font-size: 14px; cursor: pointer; }
 .join-card .join-btn:hover { background: #4a8be5; }
 
 /* Modals */
@@ -201,7 +227,7 @@ body {
 .modal-overlay.active { display: flex; }
 .modal {
   background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 8px;
-  padding: 20px; min-width: 360px; max-width: 700px; max-height: 85vh;
+  padding: 20px; min-width: 360px; max-width: 750px; max-height: 85vh;
   overflow: auto;
 }
 .modal h3 { margin-bottom: 12px; color: #00d2ff; }
@@ -218,20 +244,29 @@ body {
 }
 .modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 
-/* Diff List */
-#diff-list { max-height: 400px; overflow: auto; }
-.diff-item {
-  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
-  font-size: 11px; border-radius: 3px; margin: 1px 0; cursor: pointer;
+/* Timeline in version modal */
+#timeline-list { max-height: 50vh; overflow: auto; }
+.timeline-item {
+  display: flex; gap: 10px; padding: 8px 10px; border-bottom: 1px solid #1e2d3d;
+  cursor: pointer; transition: background 0.15s; align-items: flex-start;
 }
-.diff-item:hover { background: rgba(58,123,213,0.15); }
-.diff-item.added { border-left: 3px solid #4caf50; color: #81c784; }
-.diff-item.removed { border-left: 3px solid #f44336; color: #ff8080; }
-.diff-item.modified { border-left: 3px solid #ff9800; color: #ffcc80; }
-.diff-item .diff-icon { font-size: 12px; flex-shrink: 0; }
-.diff-item .diff-path { color: #5dade2; font-weight: 500; }
-.diff-item .diff-val { font-family: monospace; color: #aaa; font-size: 10px; word-break: break-all; }
-.diff-item .diff-arrow { color: #6c7a89; margin: 0 4px; }
+.timeline-item:hover { background: rgba(58,123,213,0.1); }
+.timeline-item .tl-ver { min-width: 36px; font-size: 12px; font-weight: 600; color: #3a7bd5; }
+.timeline-item .tl-info { flex: 1; }
+.timeline-item .tl-usr { font-size: 11px; color: #00d2ff; }
+.timeline-item .tl-desc { font-size: 11px; color: #c8d6e5; }
+.timeline-item .tl-time { font-size: 10px; color: #4a5a6a; }
+.timeline-item .tl-expand {
+  background: #1e2d3d; border: 1px solid #2a3a4a; color: #6c7a89;
+  padding: 2px 8px; border-radius: 3px; font-size: 10px; cursor: pointer;
+}
+.timeline-item .tl-expand:hover { color: #00d2ff; border-color: #3a7bd5; }
+#version-detail-panel { display: none; border-top: 1px solid #2a3a4a; margin-top: 8px; padding-top: 8px; }
+#version-detail-panel.active { display: block; }
+#version-detail-panel pre {
+  background: #0f1923; padding: 8px; border-radius: 4px; font-size: 11px;
+  max-height: 200px; overflow: auto; white-space: pre-wrap; word-break: break-all;
+}
 
 #toast {
   position: fixed; bottom: 20px; right: 20px;
@@ -254,14 +289,8 @@ body {
   <div class="join-card">
     <h1>🔗 OT 实时协作编辑器</h1>
     <p>基于操作转换算法的多人协同JSON编辑</p>
-    <div class="form-group">
-      <label>用户名</label>
-      <input type="text" id="join-name" placeholder="输入你的名字...">
-    </div>
-    <div class="form-group">
-      <label>文档ID（相同ID进入同一文档）</label>
-      <input type="text" id="join-docid" value="default" placeholder="输入文档ID...">
-    </div>
+    <div class="form-group"><label>用户名</label><input type="text" id="join-name" placeholder="输入你的名字..."></div>
+    <div class="form-group"><label>文档ID（相同ID进入同一文档）</label><input type="text" id="join-docid" value="default" placeholder="输入文档ID..."></div>
     <div class="mode-toggle">
       <button class="mode-btn active" data-mode="editor" onclick="setJoinMode('editor')">✏️ 编辑模式</button>
       <button class="mode-btn" data-mode="observer" onclick="setJoinMode('observer')">👁️ 只读观察</button>
@@ -279,13 +308,9 @@ body {
     <span id="version-display">v0</span>
     <span class="spacer"></span>
     <label>冲突策略:</label>
-    <select id="conflict-strategy">
-      <option value="last_writer_wins">后提交者获胜</option>
-      <option value="auto_merge">自动合并</option>
-    </select>
-    <button id="btn-diff" title="版本差异对比">🔍 版本对比</button>
+    <select id="conflict-strategy"><option value="last_writer_wins">后提交者获胜</option><option value="auto_merge">自动合并</option></select>
     <button id="btn-export" class="primary" title="导出JSON">📥 导出</button>
-    <button id="btn-rollback" title="回退到历史版本">⏪ 回退</button>
+    <button id="btn-rollback" title="版本时间线 / 回退">⏪ 时间线</button>
     <button id="btn-add-root" title="添加根节点">➕ 添加</button>
     <button id="btn-raw-json" title="查看/编辑原始JSON">📝 原始JSON</button>
     <button id="btn-reset" class="danger" title="重置文档">🔄 重置</button>
@@ -293,17 +318,51 @@ body {
 
   <div id="main">
     <div id="editor-panel">
-      <div class="panel-header">
-        <span class="icon">📁</span> JSON文档树
-      </div>
+      <div class="panel-header"><span class="icon">📁</span> JSON文档树</div>
       <div id="tree-container"><div style="padding:20px;color:#6c7a89;">正在连接服务器...</div></div>
     </div>
     <div id="side-panel">
-      <div id="log-section">
-        <div class="panel-header"><span class="icon">📋</span> 操作日志（点击查看详情）</div>
+      <div id="side-tabs">
+        <button class="tab-btn active" data-tab="tab-log">📋 操作日志</button>
+        <button class="tab-btn" data-tab="tab-diff">🔍 版本对比</button>
+        <button class="tab-btn" data-tab="tab-audit">📊 变更审计</button>
+      </div>
+
+      <div class="tab-content active" id="tab-log">
         <div id="log-list"></div>
         <div id="log-detail"></div>
       </div>
+
+      <div class="tab-content" id="tab-diff">
+        <div id="diff-tab-controls">
+          <select id="diff-v1-select"></select>
+          <span style="font-size:10px;color:#6c7a89;align-self:center;">→</span>
+          <select id="diff-v2-select"></select>
+          <button onclick="loadDiffInTab()">对比</button>
+        </div>
+        <div id="diff-result-list"></div>
+      </div>
+
+      <div class="tab-content" id="tab-audit">
+        <div id="audit-controls">
+          <select id="audit-user" onchange="loadAudit()"><option value="">全部用户</option></select>
+          <select id="audit-type" onchange="loadAudit()">
+            <option value="">全部类型</option>
+            <option value="update">更新</option>
+            <option value="add">添加</option>
+            <option value="delete">删除</option>
+            <option value="move">移动</option>
+            <option value="replace">替换</option>
+            <option value="rollback">回退</option>
+          </select>
+          <input type="number" id="audit-from" placeholder="起" min="0" onchange="loadAudit()">
+          <span style="font-size:10px;color:#6c7a89;align-self:center;">-</span>
+          <input type="number" id="audit-to" placeholder="止" min="0" onchange="loadAudit()">
+          <button onclick="loadAudit()">查询</button>
+        </div>
+        <div id="audit-list"></div>
+      </div>
+
       <div id="user-section">
         <div class="panel-header"><span class="icon">👥</span> 在线用户</div>
         <div id="user-list"></div>
@@ -312,85 +371,54 @@ body {
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-timeline">
+  <div class="modal" style="max-width:680px;">
+    <h3>⏱ 版本时间线</h3>
+    <div id="timeline-list"></div>
+    <div id="version-detail-panel">
+      <div class="form-group"><label>操作说明</label><div id="vd-desc" style="font-size:13px;"></div></div>
+      <div class="form-group"><label>提交人</label><div id="vd-user" style="font-size:13px;"></div></div>
+      <div class="form-group"><label>版本内容</label><pre id="vd-content"></pre></div>
+      <div class="form-group"><label>相比上一版本的差异</label><div id="vd-diff" style="font-size:11px;"></div></div>
+      <div class="modal-actions">
+        <button class="danger" id="btn-timeline-rollback">回退到此版本</button>
+        <button onclick="closeVersionDetail()">关闭详情</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeModal('modal-timeline')">关闭</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-rollback">
   <div class="modal">
-    <h3>回退到历史版本</h3>
-    <div class="form-group">
-      <label>选择目标版本</label>
-      <select id="rollback-version-select" onchange="previewRollbackDiff()"></select>
-    </div>
+    <h3>回退确认</h3>
     <div id="rollback-diff-container" style="display:none;">
       <label style="font-size:12px;color:#6c7a89;">差异预览（当前 → 目标版本）</label>
       <div id="rollback-diff-list" style="max-height:250px;overflow:auto;"></div>
     </div>
     <div class="modal-actions">
       <button onclick="closeModal('modal-rollback')">取消</button>
-      <button class="danger" id="btn-rollback-confirm" onclick="executeRollback()">确认回退</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-diff">
-  <div class="modal" style="max-width:600px;">
-    <h3>版本差异对比</h3>
-    <div style="display:flex;gap:10px;margin-bottom:10px;">
-      <div class="form-group" style="flex:1;margin-bottom:0;">
-        <label>版本 A</label>
-        <select id="diff-v1-select"></select>
-      </div>
-      <div class="form-group" style="flex:1;margin-bottom:0;">
-        <label>版本 B</label>
-        <select id="diff-v2-select"></select>
-      </div>
-    </div>
-    <button class="primary" onclick="loadDiff()" style="width:100%;margin-bottom:8px;">开始对比</button>
-    <div id="diff-list"></div>
-    <div class="modal-actions">
-      <button onclick="closeModal('modal-diff')">关闭</button>
+      <button class="danger" id="btn-rollback-confirm">确认回退</button>
     </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="modal-raw-json">
-  <div class="modal">
-    <h3>原始JSON编辑</h3>
-    <div class="form-group">
-      <label>直接编辑JSON内容（注意：此操作将覆盖当前文档）</label>
-      <textarea id="raw-json-text"></textarea>
-    </div>
-    <div class="modal-actions">
-      <button onclick="closeModal('modal-raw-json')">取消</button>
-      <button class="primary" onclick="applyRawJson()">应用</button>
-    </div>
+  <div class="modal"><h3>原始JSON编辑</h3>
+    <div class="form-group"><label>直接编辑JSON内容（注意：此操作将覆盖当前文档）</label><textarea id="raw-json-text"></textarea></div>
+    <div class="modal-actions"><button onclick="closeModal('modal-raw-json')">取消</button><button class="primary" onclick="applyRawJson()">应用</button></div>
   </div>
 </div>
 
 <div class="modal-overlay" id="modal-add-node">
-  <div class="modal">
-    <h3>添加新节点</h3>
-    <div class="form-group">
-      <label>节点键名</label>
-      <input type="text" id="add-node-key" placeholder="输入键名...">
-    </div>
-    <div class="form-group">
-      <label>节点类型</label>
-      <select id="add-node-type" onchange="onAddNodeTypeChange()">
-        <option value="string">字符串</option>
-        <option value="number">数字</option>
-        <option value="boolean">布尔值</option>
-        <option value="object">对象</option>
-        <option value="null">null</option>
-      </select>
-    </div>
-    <div class="form-group" id="add-node-value-group">
-      <label>节点值</label>
-      <input type="text" id="add-node-value" placeholder="输入值...">
-    </div>
+  <div class="modal"><h3>添加新节点</h3>
+    <div class="form-group"><label>节点键名</label><input type="text" id="add-node-key" placeholder="输入键名..."></div>
+    <div class="form-group"><label>节点类型</label><select id="add-node-type" onchange="onAddNodeTypeChange()"><option value="string">字符串</option><option value="number">数字</option><option value="boolean">布尔值</option><option value="object">对象</option><option value="null">null</option></select></div>
+    <div class="form-group" id="add-node-value-group"><label>节点值</label><input type="text" id="add-node-value" placeholder="输入值..."></div>
     <input type="hidden" id="add-node-path">
-    <div class="modal-actions">
-      <button onclick="closeModal('modal-add-node')">取消</button>
-      <button class="primary" onclick="executeAddNode()">添加</button>
-    </div>
+    <div class="modal-actions"><button onclick="closeModal('modal-add-node')">取消</button><button class="primary" onclick="executeAddNode()">添加</button></div>
   </div>
 </div>
 
@@ -398,690 +426,395 @@ body {
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
-let docData = {};
-let docVersion = 0;
-let docId = '';
-let userId = '';
-let userName = '';
-let socket = null;
-let clients = {};
-let expandedNodes = new Set();
-let selectedPath = null;
-let addNodeTargetPath = null;
-let role = 'editor';
-let moveSourcePath = null;
-let diffTargetPath = null;
-let versionList = [];
+let docData={}, docVersion=0, docId='', userId='', userName='', socket=null, clients={}, expandedNodes=new Set(), selectedPath=null, addNodeTargetPath=null, role='editor', moveSourcePath=null, versionList=[], timelineTargetVersion=null;
 
-function setJoinMode(mode) {
-  role = mode;
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-}
+function setJoinMode(mode) { role=mode; document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode)); }
 
 function doJoin() {
-  const name = document.getElementById('join-name').value.trim();
-  if (!name) { showToast('请输入用户名', 'error'); return; }
-  userName = name;
-  docId = document.getElementById('join-docid').value.trim() || 'default';
-  localStorage.setItem('ot_user_name', userName);
-  localStorage.setItem('ot_doc_id', docId);
-  document.getElementById('join-overlay').style.display = 'none';
-  document.getElementById('app').classList.add('ready');
+  const name=document.getElementById('join-name').value.trim();
+  if(!name){showToast('请输入用户名','error');return;}
+  userName=name; docId=document.getElementById('join-docid').value.trim()||'default';
+  localStorage.setItem('ot_user_name',userName); localStorage.setItem('ot_doc_id',docId);
+  document.getElementById('join-overlay').style.display='none'; document.getElementById('app').classList.add('ready');
   initConnection();
 }
 
-(function initJoinDefaults() {
-  const savedName = localStorage.getItem('ot_user_name');
-  const savedDocId = localStorage.getItem('ot_doc_id');
-  if (savedName) document.getElementById('join-name').value = savedName;
-  if (savedDocId) document.getElementById('join-docid').value = savedDocId;
-})();
+(function(){const n=localStorage.getItem('ot_user_name'),d=localStorage.getItem('ot_doc_id');if(n)document.getElementById('join-name').value=n;if(d)document.getElementById('join-docid').value=d;})();
 
 function initConnection() {
-  userId = 'user_' + Math.random().toString(36).substring(2, 8);
-  socket = io({ transports: ['websocket', 'polling'] });
-
-  socket.on('connect', () => {
+  userId='user_'+Math.random().toString(36).substring(2,8);
+  socket=io({transports:['websocket','polling']});
+  socket.on('connect',()=>{
     document.getElementById('status-dot').classList.remove('disconnected');
-    document.getElementById('user-name-display').textContent = userName;
-    document.getElementById('role-badge').textContent = role === 'observer' ? '只读' : '编辑';
-    document.getElementById('role-badge').className = 'role-badge ' + role;
-    socket.emit('join', { doc_id: docId, user_name: userName, role: role });
-    addLog('已连接到服务器', 'system');
+    document.getElementById('user-name-display').textContent=userName;
+    document.getElementById('role-badge').textContent=role==='observer'?'只读':'编辑';
+    document.getElementById('role-badge').className='role-badge '+role;
+    socket.emit('join',{doc_id:docId,user_name:userName,role:role});
+    addLog('已连接到服务器','system');
   });
-
-  socket.on('disconnect', () => {
-    document.getElementById('status-dot').classList.add('disconnected');
-    addLog('与服务器断开连接', 'system');
+  socket.on('disconnect',()=>{document.getElementById('status-dot').classList.add('disconnected');addLog('与服务器断开连接','system');});
+  socket.on('connected',(d)=>{userId=d.sid;});
+  socket.on('sync_full',(d)=>{
+    docData=d.data; docVersion=d.version; docId=d.doc_id; clients=d.clients||{};
+    if(d.role)role=d.role;
+    updateStatus(); renderTree(); updateUserList(); applyRoleUI();
+    addLog(`已同步完整文档 v${docVersion}`,'system');
+    loadAuditUserList();
   });
-
-  socket.on('connected', (data) => { userId = data.sid; });
-
-  socket.on('sync_full', (data) => {
-    docData = data.data;
-    docVersion = data.version;
-    docId = data.doc_id;
-    clients = data.clients || {};
-    if (data.role) role = data.role;
-    updateStatus();
-    renderTree();
-    updateUserList();
-    applyRoleUI();
-    addLog(`已同步完整文档 v${docVersion}`, 'system');
+  socket.on('sync_operations',(d)=>{
+    d.operations.forEach(op=>applyOperationLocally(op));
+    docData=d.data; docVersion=d.version; updateStatus(); renderTree();
+    addLog(`已同步 ${d.operations.length} 个增量操作 v${docVersion}`,'system');
   });
-
-  socket.on('sync_operations', (data) => {
-    data.operations.forEach(op => applyOperationLocally(op));
-    docData = data.data;
-    docVersion = data.version;
-    updateStatus();
-    renderTree();
-    addLog(`已同步 ${data.operations.length} 个增量操作 v${docVersion}`, 'system');
-  });
-
-  socket.on('sync_required', (data) => {
-    addLog('版本落后于服务器，正在请求同步...', 'system');
-    socket.emit('request_sync', { doc_id: docId, version: docVersion });
-  });
-
-  socket.on('operation_applied', (data) => {
-    docData = data.data;
-    docVersion = data.version;
-    updateStatus();
-    renderTree();
-  });
-
-  socket.on('operation_rejected', (data) => {
-    addLog(`操作被拒绝: ${data.reason}`, 'system');
-    socket.emit('request_sync', { doc_id: docId, version: docVersion });
-  });
-
-  socket.on('operation_log', (data) => {
-    addLog(data);
-  });
-
-  socket.on('user_joined', (data) => {
-    clients = data.clients || clients;
-    updateUserList();
-    const rl = data.role === 'observer' ? '(观察者) ' : '';
-    addLog({ message: `${rl}用户 ${data.user_name} 加入了文档`, type: 'system' });
-  });
-
-  socket.on('user_left', (data) => {
-    clients = data.clients || clients;
-    updateUserList();
-    addLog({ message: `用户 ${data.user_name} 离开了文档`, type: 'system' });
-  });
+  socket.on('sync_required',(d)=>{addLog('版本落后于服务器，正在请求同步...','system');socket.emit('request_sync',{doc_id:docId,version:docVersion});});
+  socket.on('operation_applied',(d)=>{docData=d.data;docVersion=d.version;updateStatus();renderTree();});
+  socket.on('operation_rejected',(d)=>{addLog(`操作被拒绝: ${d.reason}`,'system');socket.emit('request_sync',{doc_id:docId,version:docVersion});});
+  socket.on('operation_log',(d)=>{addLog(d);});
+  socket.on('user_joined',(d)=>{clients=d.clients||clients;updateUserList();loadAuditUserList();const rl=d.role==='observer'?'(观察者) ':'';addLog({message:`${rl}用户 ${d.user_name} 加入了文档`,type:'system'});});
+  socket.on('user_left',(d)=>{clients=d.clients||clients;updateUserList();loadAuditUserList();addLog({message:`用户 ${d.user_name} 离开了文档`,type:'system'});});
 }
 
 function applyRoleUI() {
-  const isObserver = role === 'observer';
-  const btns = ['btn-export', 'btn-rollback', 'btn-add-root', 'btn-raw-json', 'btn-reset', 'btn-diff'];
-  const sel = ['conflict-strategy'];
-  btns.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isObserver; });
-  sel.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = isObserver; });
-  document.getElementById('tree-container').classList.toggle('readonly', isObserver);
+  const isObs=role==='observer';
+  ['btn-add-root','btn-raw-json','btn-reset'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=isObs;});
+  document.getElementById('conflict-strategy').disabled=isObs;
+  document.getElementById('tree-container').classList.toggle('readonly',isObs);
 }
 
-setInterval(() => {
-  if (socket && socket.connected) socket.emit('heartbeat', { doc_id: docId });
-}, 3000);
-
-function updateStatus() {
-  document.getElementById('version-display').textContent = 'v' + docVersion;
+function loadAuditUserList() {
+  const users=new Set(); const sel=document.getElementById('audit-user');
+  for(const [cid,info] of Object.entries(clients)) users.add(info.user_name);
+  users.add(userName);
+  sel.innerHTML='<option value="">全部用户</option>';
+  users.forEach(u=>{const o=new Option(u,u);sel.appendChild(o);});
 }
 
+setInterval(()=>{if(socket&&socket.connected)socket.emit('heartbeat',{doc_id:docId});},3000);
+function updateStatus(){document.getElementById('version-display').textContent='v'+docVersion;}
+
+// ===================== Tabs =====================
+document.querySelectorAll('#side-tabs .tab-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('#side-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById(this.dataset.tab).classList.add('active');
+    if(this.dataset.tab==='tab-diff') initDiffTab();
+    if(this.dataset.tab==='tab-audit') loadAudit();
+  });
+});
+
+// ===================== Log =====================
 function addLog(data) {
-  if (typeof data === 'string') data = { message: data, type: 'info' };
-  const list = document.getElementById('log-list');
-  const entry = document.createElement('div');
-  entry.className = 'log-entry ' + (data.type || 'info');
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
-  entry.innerHTML = `<span class="log-time">${timeStr}</span>${data.message}`;
-  if (data.old_value !== undefined || data.new_value !== undefined || data.version !== undefined) {
-    entry.dataset.oldValue = data.old_value !== undefined ? JSON.stringify(data.old_value) : '';
-    entry.dataset.newValue = data.new_value !== undefined ? JSON.stringify(data.new_value) : '';
-    entry.dataset.version = data.version || '';
-    entry.dataset.opType = data.op_type || '';
-    entry.title = '点击查看详情';
+  if(typeof data==='string')data={message:data,type:'info'};
+  const list=document.getElementById('log-list');
+  const entry=document.createElement('div');
+  entry.className='log-entry '+(data.type||'info');
+  const now=new Date();
+  entry.innerHTML=`<span class="log-time">${now.toLocaleTimeString('zh-CN',{hour12:false})}</span>${data.message}`;
+  if(data.old_value!==undefined||data.new_value!==undefined||data.version!==undefined){
+    entry.dataset.oldValue=data.old_value!==undefined?JSON.stringify(data.old_value):'';
+    entry.dataset.newValue=data.new_value!==undefined?JSON.stringify(data.new_value):'';
+    entry.dataset.version=data.version||''; entry.dataset.opType=data.op_type||'';
+    entry.title='点击查看详情';
   }
-  entry.onclick = function() { showLogDetail(entry); };
-  list.prepend(entry);
-  if (list.children.length > 200) list.removeChild(list.lastChild);
+  entry.onclick=function(){showLogDetail(entry);};
+  list.prepend(entry); if(list.children.length>300)list.removeChild(list.lastChild);
 }
 
-function showLogDetail(entry) {
-  const detail = document.getElementById('log-detail');
-  const oldV = entry.dataset.oldValue && entry.dataset.oldValue !== 'null' ? JSON.parse(entry.dataset.oldValue) : null;
-  const newV = entry.dataset.newValue && entry.dataset.newValue !== 'null' ? JSON.parse(entry.dataset.newValue) : null;
-  const opType = entry.dataset.opType;
-
-  let html = '';
-  if (opType === 'update' && oldV !== null) {
-    html += `<div class="detail-row"><span class="detail-label">旧值:</span><span class="detail-old">${fmt(oldV)}</span></div>`;
-    html += `<div class="detail-arrow" style="margin:2px 8px;">⬇</div>`;
-    html += `<div class="detail-row"><span class="detail-label">新值:</span><span class="detail-new">${fmt(newV)}</span></div>`;
-  } else if (opType === 'delete') {
-    html += `<div class="detail-row"><span class="detail-label">被删除:</span><span class="detail-old">${fmt(oldV)}</span></div>`;
-  } else if (opType === 'add') {
-    html += `<div class="detail-row"><span class="detail-label">新增:</span><span class="detail-new">${fmt(newV)}</span></div>`;
-  } else if (opType === 'move') {
-    html += `<div class="detail-row"><span class="detail-label">内容:</span><span class="detail-new">${fmt(newV)}</span></div>`;
+function showLogDetail(entry){
+  const detail=document.getElementById('log-detail');
+  const oldV=entry.dataset.oldValue&&entry.dataset.oldValue!=='null'?JSON.parse(entry.dataset.oldValue):null;
+  const newV=entry.dataset.newValue&&entry.dataset.newValue!=='null'?JSON.parse(entry.dataset.newValue):null;
+  let html='';
+  if(entry.dataset.opType==='update'&&oldV!==null){
+    html+=`<div class="detail-row"><span class="detail-label">旧值:</span><span class="detail-old">${fmt(oldV)}</span></div><div class="detail-arrow" style="margin:2px 8px;">⬇</div><div class="detail-row"><span class="detail-label">新值:</span><span class="detail-new">${fmt(newV)}</span></div>`;
+  }else if(entry.dataset.opType==='delete'){
+    html+=`<div class="detail-row"><span class="detail-label">被删除:</span><span class="detail-old">${fmt(oldV)}</span></div>`;
+  }else if(entry.dataset.opType==='add'){
+    html+=`<div class="detail-row"><span class="detail-label">新增:</span><span class="detail-new">${fmt(newV)}</span></div>`;
+  }else if(entry.dataset.opType==='move'){
+    html+=`<div class="detail-row"><span class="detail-label">内容:</span><span class="detail-new">${fmt(newV)}</span></div>`;
   }
-  if (html) {
-    detail.innerHTML = html;
-    detail.classList.add('active');
-  } else {
-    detail.classList.remove('active');
-  }
+  if(html){detail.innerHTML=html;detail.classList.add('active');}else{detail.classList.remove('active');}
 }
+function fmt(v){if(v===null||v===undefined)return'null';if(typeof v==='object')return JSON.stringify(v);return String(v);}
 
-function fmt(v) {
-  if (v === null || v === undefined) return 'null';
-  if (typeof v === 'object') return JSON.stringify(v);
-  return String(v);
-}
-
-function updateUserList() {
-  const list = document.getElementById('user-list');
-  list.innerHTML = '';
-  const meItem = document.createElement('div');
-  meItem.className = 'user-item';
-  const rlBadge = role === 'observer' ? '<span class="user-role">[观察]</span> ' : '';
-  meItem.innerHTML = `<span class="user-dot"></span> ${userName} (我) ${rlBadge}`;
-  list.appendChild(meItem);
-
-  for (const [cid, info] of Object.entries(clients)) {
-    const item = document.createElement('div');
-    item.className = 'user-item';
-    const rBadge = info.role === 'observer' ? '<span class="user-role">[观察]</span> ' : '';
-    item.innerHTML = `<span class="user-dot"></span> ${info.user_name} ${rBadge}`;
-    list.appendChild(item);
+// ===================== User List =====================
+function updateUserList(){
+  const list=document.getElementById('user-list'); list.innerHTML='';
+  const me=document.createElement('div'); me.className='user-item';
+  const rb=role==='observer'?'<span class="user-role">[观察]</span> ':'';
+  me.innerHTML=`<span class="user-dot"></span> ${userName} (我) ${rb}`; list.appendChild(me);
+  for(const[cid,info] of Object.entries(clients)){
+    const item=document.createElement('div'); item.className='user-item';
+    const r=info.role==='observer'?'<span class="user-role">[观察]</span> ':'';
+    item.innerHTML=`<span class="user-dot"></span> ${info.user_name} ${r}`; list.appendChild(item);
   }
 }
 
-function renderTree(highlightPath) {
-  const container = document.getElementById('tree-container');
-  container.innerHTML = '';
-  container.appendChild(buildTreeView(docData, [], 'root', highlightPath));
-  if (highlightPath) {
-    setTimeout(() => {
-      const row = document.querySelector(`[data-path="${JSON.stringify(highlightPath)}"]`);
-      if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }, 50);
-  }
+// ===================== Tree =====================
+function renderTree(highlightPath){
+  const c=document.getElementById('tree-container'); c.innerHTML=''; c.appendChild(buildTreeView(docData,[],'root',highlightPath));
+  if(highlightPath) setTimeout(()=>{const row=document.querySelector(`[data-path="${JSON.stringify(highlightPath)}"]`);if(row)row.scrollIntoView({block:'center',behavior:'smooth'});},50);
 }
 
-function buildTreeView(obj, path, nodeKey, highlightPath) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'tree-node';
-  const isReadonly = role === 'observer';
-
-  if (obj !== null && typeof obj === 'object' && !Array.isArray(obj)) {
-    const row = createNodeRow(nodeKey, 'object', Object.keys(obj).length + ' 个字段', path, null, isReadonly, highlightPath);
-    wrapper.appendChild(row);
-    const childrenDiv = document.createElement('div');
-    childrenDiv.className = 'children';
-    const pathKey = JSON.stringify(path);
-    if (!expandedNodes.has(pathKey)) childrenDiv.style.display = 'none';
-    for (const [key, val] of Object.entries(obj)) {
-      childrenDiv.appendChild(buildTreeView(val, [...path, key], key, highlightPath));
-    }
-    if (!isReadonly) {
-      const addBtn = document.createElement('div');
-      addBtn.style.cssText = 'padding-left:40px;font-size:11px;color:#3a4a5a;cursor:pointer;margin-top:2px;';
-      addBtn.textContent = '+ 添加字段...';
-      addBtn.onclick = (e) => { e.stopPropagation(); openAddNodeModal(path); };
-      childrenDiv.appendChild(addBtn);
-    }
-    wrapper.appendChild(childrenDiv);
-  } else if (Array.isArray(obj)) {
-    const row = createNodeRow(nodeKey, 'array', `[${obj.length} 项]`, path, null, isReadonly, highlightPath);
-    wrapper.appendChild(row);
-    const childrenDiv = document.createElement('div');
-    childrenDiv.className = 'children';
-    const pathKey = JSON.stringify(path);
-    if (!expandedNodes.has(pathKey)) childrenDiv.style.display = 'none';
-    obj.forEach((val, idx) => {
-      childrenDiv.appendChild(buildTreeView(val, [...path, String(idx)], String(idx), highlightPath));
-    });
-    wrapper.appendChild(childrenDiv);
-  } else {
-    const row = createNodeRow(nodeKey, typeof obj, formatValue(obj), path, obj, isReadonly, highlightPath);
-    wrapper.appendChild(row);
+function buildTreeView(obj,path,nodeKey,highlightPath){
+  const wrapper=document.createElement('div'); wrapper.className='tree-node'; const isReadonly=role==='observer';
+  if(obj!==null&&typeof obj==='object'&&!Array.isArray(obj)){
+    const row=createNodeRow(nodeKey,'object',Object.keys(obj).length+' 个字段',path,null,isReadonly,highlightPath);
+    wrapper.appendChild(row); const cd=document.createElement('div'); cd.className='children';
+    const pk=JSON.stringify(path); if(!expandedNodes.has(pk))cd.style.display='none';
+    for(const[k,v] of Object.entries(obj))cd.appendChild(buildTreeView(v,[...path,k],k,highlightPath));
+    if(!isReadonly){const ab=document.createElement('div');ab.style.cssText='padding-left:40px;font-size:11px;color:#3a4a5a;cursor:pointer;margin-top:2px;';ab.textContent='+ 添加字段...';ab.onclick=(e)=>{e.stopPropagation();openAddNodeModal(path);};cd.appendChild(ab);}
+    wrapper.appendChild(cd);
+  }else if(Array.isArray(obj)){
+    const row=createNodeRow(nodeKey,'array',`[${obj.length} 项]`,path,null,isReadonly,highlightPath);
+    wrapper.appendChild(row); const cd=document.createElement('div'); cd.className='children';
+    const pk=JSON.stringify(path); if(!expandedNodes.has(pk))cd.style.display='none';
+    obj.forEach((v,i)=>cd.appendChild(buildTreeView(v,[...path,String(i)],String(i),highlightPath)));
+    wrapper.appendChild(cd);
+  }else{
+    const row=createNodeRow(nodeKey,typeof obj,formatValue(obj),path,obj,isReadonly,highlightPath); wrapper.appendChild(row);
   }
   return wrapper;
 }
 
-function createNodeRow(key, type, display, path, rawValue, isReadonly, highlightPath) {
-  const row = document.createElement('div');
-  row.className = 'node-row' + (isReadonly ? ' readonly' : '');
-  row.dataset.path = JSON.stringify(path);
-  if (highlightPath && JSON.stringify(path) === JSON.stringify(highlightPath)) {
-    row.classList.add('diff-highlight');
-  }
-  row.onclick = (e) => {
-    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-    selectNode(path, row);
-  };
-
-  const depth = path.length;
-  const indent = document.createElement('span');
-  indent.className = 'indent';
-  indent.style.width = (depth * 16) + 'px';
-  indent.innerHTML = '&nbsp;';
-  row.appendChild(indent);
-
-  if (type === 'object' || type === 'array') {
-    const toggle = document.createElement('span');
-    toggle.className = 'toggle';
-    const pathKey = JSON.stringify(path);
-    toggle.textContent = expandedNodes.has(pathKey) ? '▼' : '▶';
-    toggle.onclick = (e) => { e.stopPropagation(); toggleNode(path); };
-    row.appendChild(toggle);
-  } else {
-    const spacer = document.createElement('span');
-    spacer.className = 'toggle';
-    row.appendChild(spacer);
-  }
-
-  const keyEl = document.createElement('span');
-  keyEl.className = 'key';
-  keyEl.textContent = key;
-  row.appendChild(keyEl);
-
-  const colonEl = document.createElement('span');
-  colonEl.className = 'colon';
-  colonEl.textContent = ':';
-  row.appendChild(colonEl);
-
-  if (type === 'object' || type === 'array') {
-    const badge = document.createElement('span');
-    badge.className = 'type-badge';
-    badge.textContent = type === 'object' ? '{}' : '[]';
-    row.appendChild(badge);
-  }
-
-  const valSpan = document.createElement('span');
-  valSpan.className = 'val-' + type;
-  if (type === 'string') valSpan.textContent = '"' + display + '"';
-  else valSpan.textContent = display;
-  row.appendChild(valSpan);
-
-  if (path.length > 0 && !isReadonly) {
-    const actions = document.createElement('span');
-    actions.className = 'node-actions';
-
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '✏️';
-    editBtn.title = '编辑';
-    editBtn.onclick = (e) => { e.stopPropagation(); startInlineEdit(row, path, rawValue, type); };
-    actions.appendChild(editBtn);
-
-    const addBtn = document.createElement('button');
-    addBtn.textContent = '➕';
-    addBtn.title = '添加子节点';
-    addBtn.onclick = (e) => { e.stopPropagation(); openAddNodeModal(path); };
-    if (type !== 'object' && type !== 'array') addBtn.style.display = 'none';
-    actions.appendChild(addBtn);
-
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '🗑';
-    delBtn.className = 'del-btn';
-    delBtn.title = '删除';
-    delBtn.onclick = (e) => { e.stopPropagation(); submitOperation('delete', { path: path }); };
-    actions.appendChild(delBtn);
-
-    const moveBtn = document.createElement('button');
-    moveBtn.textContent = '↗️';
-    moveBtn.title = '移动（点击后选择目标）';
-    moveBtn.onclick = (e) => { e.stopPropagation(); startMove(path); };
-    actions.appendChild(moveBtn);
-
+function createNodeRow(key,type,display,path,rawValue,isReadonly,highlightPath){
+  const row=document.createElement('div'); row.className='node-row'+(isReadonly?' readonly':'');
+  row.dataset.path=JSON.stringify(path);
+  if(highlightPath&&JSON.stringify(path)===JSON.stringify(highlightPath))row.classList.add('diff-highlight');
+  row.onclick=(e)=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return;selectNode(path,row);};
+  const indent=document.createElement('span'); indent.className='indent'; indent.style.width=(path.length*16)+'px'; indent.innerHTML='&nbsp;'; row.appendChild(indent);
+  if(type==='object'||type==='array'){
+    const toggle=document.createElement('span'); toggle.className='toggle';
+    const pk=JSON.stringify(path); toggle.textContent=expandedNodes.has(pk)?'▼':'▶';
+    toggle.onclick=(e)=>{e.stopPropagation();toggleNode(path);}; row.appendChild(toggle);
+  }else{const sp=document.createElement('span');sp.className='toggle';row.appendChild(sp);}
+  const keyEl=document.createElement('span');keyEl.className='key';keyEl.textContent=key;row.appendChild(keyEl);
+  const col=document.createElement('span');col.className='colon';col.textContent=':';row.appendChild(col);
+  if(type==='object'||type==='array'){const b=document.createElement('span');b.className='type-badge';b.textContent=type==='object'?'{}':'[]';row.appendChild(b);}
+  const vs=document.createElement('span');vs.className='val-'+type;vs.textContent=type==='string'?'"'+display+'"':display;row.appendChild(vs);
+  if(path.length>0&&!isReadonly){
+    const actions=document.createElement('span');actions.className='node-actions';
+    const eb=document.createElement('button');eb.textContent='✏️';eb.title='编辑';eb.onclick=(e)=>{e.stopPropagation();startInlineEdit(row,path,rawValue,type);};actions.appendChild(eb);
+    const ab=document.createElement('button');ab.textContent='➕';ab.title='添加子节点';ab.onclick=(e)=>{e.stopPropagation();openAddNodeModal(path);};if(type!=='object'&&type!=='array')ab.style.display='none';actions.appendChild(ab);
+    const db=document.createElement('button');db.textContent='🗑';db.className='del-btn';db.title='删除';db.onclick=(e)=>{e.stopPropagation();submitOperation('delete',{path});};actions.appendChild(db);
+    const mb=document.createElement('button');mb.textContent='↗️';mb.title='移动';mb.onclick=(e)=>{e.stopPropagation();startMove(path);};actions.appendChild(mb);
     row.appendChild(actions);
   }
-
-  if (!isReadonly) {
-    row.draggable = true;
-    row.ondragstart = (e) => { e.dataTransfer.setData('text/plain', JSON.stringify(path)); row.classList.add('dragging'); };
-    row.ondragend = () => row.classList.remove('dragging');
-    row.ondragover = (e) => { e.preventDefault(); row.classList.add('drag-over'); };
-    row.ondragleave = () => row.classList.remove('drag-over');
-    row.ondrop = (e) => {
-      e.preventDefault(); row.classList.remove('drag-over');
-      const fromPath = JSON.parse(e.dataTransfer.getData('text/plain'));
-      if (JSON.stringify(fromPath) !== JSON.stringify(path)) {
-        submitOperation('move', { from_path: fromPath, to_path: path });
-      }
-    };
+  if(!isReadonly){
+    row.draggable=true; row.ondragstart=(e)=>{e.dataTransfer.setData('text/plain',JSON.stringify(path));row.classList.add('dragging');};
+    row.ondragend=()=>row.classList.remove('dragging'); row.ondragover=(e)=>{e.preventDefault();row.classList.add('drag-over');};
+    row.ondragleave=()=>row.classList.remove('drag-over');
+    row.ondrop=(e)=>{e.preventDefault();row.classList.remove('drag-over');const fp=JSON.parse(e.dataTransfer.getData('text/plain'));if(JSON.stringify(fp)!==JSON.stringify(path))submitOperation('move',{from_path:fp,to_path:path});};
   }
-
   return row;
 }
 
-function formatValue(val) {
-  if (val === null) return 'null';
-  if (typeof val === 'string') {
-    if (val.length > 60) return val.substring(0, 57) + '...';
-    return val;
-  }
-  return String(val);
-}
+function formatValue(val){if(val===null)return'null';if(typeof val==='string'){if(val.length>60)return val.substring(0,57)+'...';return val;}return String(val);}
+function toggleNode(path){const pk=JSON.stringify(path);expandedNodes.has(pk)?expandedNodes.delete(pk):expandedNodes.add(pk);renderTree();}
+function selectNode(path,row){selectedPath=path;document.querySelectorAll('.node-row').forEach(r=>r.classList.remove('selected'));if(row)row.classList.add('selected');}
 
-function toggleNode(path) {
-  const pathKey = JSON.stringify(path);
-  expandedNodes.has(pathKey) ? expandedNodes.delete(pathKey) : expandedNodes.add(pathKey);
-  renderTree();
-}
-
-function selectNode(path, row) {
-  selectedPath = path;
-  document.querySelectorAll('.node-row').forEach(r => r.classList.remove('selected'));
-  if (row) row.classList.add('selected');
-}
-
-function navigateToPath(path) {
-  for (let i = 1; i <= path.length; i++) {
-    expandedNodes.add(JSON.stringify(path.slice(0, i)));
-  }
+function navigateToPath(path){
+  for(let i=1;i<=path.length;i++)expandedNodes.add(JSON.stringify(path.slice(0,i)));
   renderTree(path);
-  closeModal('modal-diff');
-  closeModal('modal-rollback');
   showToast(`已跳转到: /${path.join('/')}`);
 }
 
 // ===================== Inline Edit =====================
-function startInlineEdit(row, path, currentValue, type) {
-  if (role === 'observer') return;
-  const valSpan = row.querySelector('[class^="val-"]');
-  if (!valSpan) return;
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'node-editor';
-  if (type === 'string') { input.value = currentValue; }
-  else if (type === 'number') { input.value = currentValue; }
-  else if (type === 'boolean') { input.value = String(currentValue); }
-  else if (currentValue === null) { input.value = 'null'; }
-  else { input.value = JSON.stringify(currentValue); }
-  input.onkeydown = (e) => {
-    if (e.key === 'Enter') finishInlineEdit(input, valSpan, path, type);
-    else if (e.key === 'Escape') input.replaceWith(valSpan);
-  };
-  input.onblur = () => finishInlineEdit(input, valSpan, path, type);
-  valSpan.replaceWith(input);
-  input.focus();
-  input.select();
+function startInlineEdit(row,path,currentValue,type){
+  if(role==='observer')return; const vs=row.querySelector('[class^="val-"]');if(!vs)return;
+  const inp=document.createElement('input');inp.type='text';inp.className='node-editor';
+  if(type==='string')inp.value=currentValue;else if(type==='number')inp.value=currentValue;
+  else if(type==='boolean')inp.value=String(currentValue);else if(currentValue===null)inp.value='null';
+  else inp.value=JSON.stringify(currentValue);
+  inp.onkeydown=(e)=>{if(e.key==='Enter')finishInlineEdit(inp,vs,path,type);else if(e.key==='Escape')inp.replaceWith(vs);};
+  inp.onblur=()=>finishInlineEdit(inp,vs,path,type); vs.replaceWith(inp); inp.focus();inp.select();
 }
-
-function finishInlineEdit(input, originalSpan, path, type) {
-  const rawValue = input.value.trim();
-  let newValue;
-  if (type === 'number') { newValue = Number(rawValue); if (isNaN(newValue)) { input.replaceWith(originalSpan); return; } }
-  else if (type === 'boolean') { if (rawValue.toLowerCase()==='true') newValue=true; else if (rawValue.toLowerCase()==='false') newValue=false; else { input.replaceWith(originalSpan); return; } }
-  else if (rawValue === 'null') { newValue = null; }
-  else if (type === 'object' || type === 'array') { try { newValue = JSON.parse(rawValue); } catch(e) { input.replaceWith(originalSpan); return; } }
-  else { newValue = rawValue; }
-  input.replaceWith(originalSpan);
-  submitOperation('update', { path: path, value: newValue });
+function finishInlineEdit(inp,vs,path,type){
+  const rv=inp.value.trim(); let nv;
+  if(type==='number'){nv=Number(rv);if(isNaN(nv)){inp.replaceWith(vs);return;}}
+  else if(type==='boolean'){if(rv.toLowerCase()==='true')nv=true;else if(rv.toLowerCase()==='false')nv=false;else{inp.replaceWith(vs);return;}}
+  else if(rv==='null')nv=null;else if(type==='object'||type==='array'){try{nv=JSON.parse(rv);}catch(e){inp.replaceWith(vs);return;}}
+  else nv=rv; inp.replaceWith(vs); submitOperation('update',{path,value:nv});
 }
 
 // ===================== Operations =====================
-function submitOperation(type, params) {
-  if (role === 'observer') { showToast('观察者模式，无法编辑', 'error'); return; }
-  if (!socket || !socket.connected) { showToast('未连接到服务器', 'error'); return; }
-  const operation = { type: type, doc_version: docVersion, ...params };
-  socket.emit('submit_operation', {
-    doc_id: docId, operation: operation,
-    conflict_strategy: document.getElementById('conflict-strategy').value
-  });
+function submitOperation(type,params){
+  if(role==='observer'){showToast('观察者模式，无法编辑','error');return;}
+  if(!socket||!socket.connected){showToast('未连接到服务器','error');return;}
+  socket.emit('submit_operation',{doc_id:docId,operation:{type,doc_version:docVersion,...params},conflict_strategy:document.getElementById('conflict-strategy').value});
 }
-
-function applyOperationLocally(op) {
-  if (op.type === 'update') setValueAtPath(docData, op.path, op.value);
-  else if (op.type === 'add') { const p = getValueAtPath(docData, op.path); if (p && typeof p === 'object' && !Array.isArray(p)) p[op.key] = op.value; }
-  else if (op.type === 'delete') deleteAtPath(docData, op.path);
-  else if (op.type === 'move') {
-    const val = getValueAtPath(docData, op.from_path);
-    deleteAtPath(docData, op.from_path);
-    if (val !== undefined) setValueAtPath(docData, op.to_path, val);
-  }
+function applyOperationLocally(op){
+  if(op.type==='update'||op.type==='replace')setValueAtPath(docData,op.path,op.value);
+  else if(op.type==='add'){const p=getValueAtPath(docData,op.path);if(p&&typeof p==='object'&&!Array.isArray(p))p[op.key]=op.value;}
+  else if(op.type==='delete')deleteAtPath(docData,op.path);
+  else if(op.type==='move'){const v=getValueAtPath(docData,op.from_path);deleteAtPath(docData,op.from_path);if(v!==undefined)setValueAtPath(docData,op.to_path,v);}
 }
-
-function getValueAtPath(obj, path) {
-  let current = obj;
-  for (const key of path) { if (current === null || typeof current !== 'object') return undefined; current = current[key]; }
-  return current;
-}
-
-function setValueAtPath(obj, path, value) {
-  let current = obj;
-  for (let i = 0; i < path.length - 1; i++) { if (!(path[i] in current)) current[path[i]] = {}; current = current[path[i]]; }
-  current[path[path.length - 1]] = value;
-}
-
-function deleteAtPath(obj, path) {
-  let current = obj;
-  for (let i = 0; i < path.length - 1; i++) { if (!(path[i] in current)) return false; current = current[path[i]]; }
-  const lk = path[path.length - 1];
-  if (Array.isArray(current)) current.splice(Number(lk), 1);
-  else delete current[lk];
-  return true;
-}
+function getValueAtPath(obj,path){let c=obj;for(const k of path){if(c===null||typeof c!=='object')return undefined;c=c[k];}return c;}
+function setValueAtPath(obj,path,value){let c=obj;for(let i=0;i<path.length-1;i++){if(!(path[i]in c))c[path[i]]={};c=c[path[i]];}c[path[path.length-1]]=value;}
+function deleteAtPath(obj,path){let c=obj;for(let i=0;i<path.length-1;i++){if(!(path[i]in c))return false;c=c[path[i]];}const lk=path[path.length-1];if(Array.isArray(c))c.splice(Number(lk),1);else delete c[lk];return true;}
 
 // ===================== Move =====================
-function startMove(sourcePath) {
-  if (role === 'observer') return;
-  if (moveSourcePath) { moveSourcePath = null; document.querySelectorAll('.node-row').forEach(r => r.style.outline = ''); addLog('移动取消', 'system'); return; }
-  moveSourcePath = sourcePath;
-  addLog(`已选择源节点: ${sourcePath.join('/')}，请点击目标节点`, 'system');
-  document.querySelectorAll('.node-row').forEach(r => { r.style.outline = '1px dashed #ff9800'; r.style.cursor = 'crosshair'; r.onclick = function(e) { if (e.target.tagName==='BUTTON'||e.target.tagName==='INPUT') return; const tp = JSON.parse(this.dataset.path); if (JSON.stringify(tp)!==JSON.stringify(moveSourcePath)) { submitOperation('move',{from_path:moveSourcePath,to_path:tp}); } moveSourcePath=null; document.querySelectorAll('.node-row').forEach(rr=>{rr.style.outline='';rr.style.cursor='pointer';}); renderTree(); }; });
+function startMove(sp){
+  if(role==='observer')return;
+  if(moveSourcePath){moveSourcePath=null;document.querySelectorAll('.node-row').forEach(r=>r.style.outline='');addLog('移动取消','system');return;}
+  moveSourcePath=sp; addLog(`已选择源节点: ${sp.join('/')}，请点击目标节点`,'system');
+  document.querySelectorAll('.node-row').forEach(r=>{r.style.outline='1px dashed #ff9800';r.style.cursor='crosshair';r.onclick=function(e){if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return;const tp=JSON.parse(this.dataset.path);if(JSON.stringify(tp)!==JSON.stringify(moveSourcePath))submitOperation('move',{from_path:moveSourcePath,to_path:tp});moveSourcePath=null;document.querySelectorAll('.node-row').forEach(rr=>{rr.style.outline='';rr.style.cursor='pointer';});renderTree();};});
 }
 
 // ===================== Add Node =====================
-function openAddNodeModal(path) {
-  if (role === 'observer') return;
-  addNodeTargetPath = path;
-  document.getElementById('add-node-key').value = '';
-  document.getElementById('add-node-value').value = '';
-  document.getElementById('add-node-type').value = 'string';
-  document.getElementById('add-node-value-group').style.display = 'block';
-  document.getElementById('add-node-path').value = JSON.stringify(path);
-  openModal('modal-add-node');
-  setTimeout(() => document.getElementById('add-node-key').focus(), 100);
+function openAddNodeModal(path){if(role==='observer')return;addNodeTargetPath=path;document.getElementById('add-node-key').value='';document.getElementById('add-node-value').value='';document.getElementById('add-node-type').value='string';document.getElementById('add-node-value-group').style.display='block';document.getElementById('add-node-path').value=JSON.stringify(path);openModal('modal-add-node');setTimeout(()=>document.getElementById('add-node-key').focus(),100);}
+function onAddNodeTypeChange(){document.getElementById('add-node-value-group').style.display=(document.getElementById('add-node-type').value==='object'||document.getElementById('add-node-type').value==='null')?'none':'block';}
+function executeAddNode(){
+  const key=document.getElementById('add-node-key').value.trim();if(!key){showToast('请输入键名','error');return;}
+  const type=document.getElementById('add-node-type').value,rv=document.getElementById('add-node-value').value.trim();let v;
+  switch(type){case'string':v=rv;break;case'number':v=Number(rv);if(isNaN(v)){showToast('无效数字','error');return;}break;case'boolean':v=rv.toLowerCase()==='true';break;case'null':v=null;break;case'object':v={};break;}
+  submitOperation('add',{path:addNodeTargetPath,key,value:v});closeModal('modal-add-node');
 }
 
-function onAddNodeTypeChange() {
-  const type = document.getElementById('add-node-type').value;
-  document.getElementById('add-node-value-group').style.display = (type === 'object' || type === 'null') ? 'none' : 'block';
+// ===================== Diff Tab =====================
+async function initDiffTab(){
+  try{const resp=await fetch(`/api/doc/${docId}/versions`);const data=await resp.json();versionList=data.versions;
+    const s1=document.getElementById('diff-v1-select'),s2=document.getElementById('diff-v2-select');
+    s1.innerHTML='';s2.innerHTML=''; data.versions.forEach(v=>{s1.appendChild(new Option(`v${v.version} - ${v.description}`,v.version));s2.appendChild(new Option(`v${v.version} - ${v.description}`,v.version));});
+    if(data.versions.length>1){s2.value=String(data.current_version);s1.value=String(data.versions[data.versions.length-2]?.version||0);}
+  }catch(e){}
 }
 
-function executeAddNode() {
-  const key = document.getElementById('add-node-key').value.trim();
-  if (!key) { showToast('请输入键名', 'error'); return; }
-  const type = document.getElementById('add-node-type').value;
-  const rawValue = document.getElementById('add-node-value').value.trim();
-  let value;
-  switch (type) {
-    case 'string': value = rawValue; break;
-    case 'number': value = Number(rawValue); if (isNaN(value)) { showToast('无效数字', 'error'); return; } break;
-    case 'boolean': value = rawValue.toLowerCase() === 'true'; break;
-    case 'null': value = null; break;
-    case 'object': value = {}; break;
-  }
-  submitOperation('add', { path: addNodeTargetPath, key, value });
-  closeModal('modal-add-node');
+async function loadDiffInTab(){
+  const v1=parseInt(document.getElementById('diff-v1-select').value),v2=parseInt(document.getElementById('diff-v2-select').value);
+  try{const resp=await fetch(`/api/doc/${docId}/diff/${v1}/${v2}`);const data=await resp.json();
+    document.getElementById('diff-result-list').innerHTML=renderDiffItems(data.diff);
+  }catch(e){showToast('获取差异失败','error');}
 }
 
-// ===================== Modals =====================
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-// ===================== Raw JSON =====================
-document.getElementById('btn-raw-json').addEventListener('click', () => {
-  document.getElementById('raw-json-text').value = JSON.stringify(docData, null, 2);
-  openModal('modal-raw-json');
-});
-
-function applyRawJson() {
-  try {
-    const newData = JSON.parse(document.getElementById('raw-json-text').value);
-    submitOperation('update', { path: [], value: newData });
-    closeModal('modal-raw-json');
-    showToast('JSON已应用');
-  } catch (e) { showToast('JSON格式错误: ' + e.message, 'error'); }
-}
-
-// ===================== Rollback with Preview =====================
-document.getElementById('btn-rollback').addEventListener('click', async () => {
-  if (role === 'observer') { showToast('观察者模式，无法回退', 'error'); return; }
-  try {
-    const resp = await fetch(`/api/doc/${docId}/versions`);
-    const data = await resp.json();
-    versionList = data.versions;
-    const sel = document.getElementById('rollback-version-select');
-    sel.innerHTML = '';
-    data.versions.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v.version;
-      opt.textContent = `v${v.version} - ${v.description} (${v.user_name})`;
-      sel.appendChild(opt);
-    });
-    sel.value = String(data.current_version);
-    document.getElementById('rollback-diff-container').style.display = 'none';
-    document.getElementById('rollback-diff-list').innerHTML = '';
-    openModal('modal-rollback');
-  } catch (e) { showToast('获取版本列表失败', 'error'); }
-});
-
-async function previewRollbackDiff() {
-  const targetVersion = parseInt(document.getElementById('rollback-version-select').value);
-  if (targetVersion === docVersion) {
-    document.getElementById('rollback-diff-container').style.display = 'none';
-    return;
-  }
-  try {
-    const resp = await fetch(`/api/doc/${docId}/diff/${targetVersion}/${docVersion}`);
-    const data = await resp.json();
-    const container = document.getElementById('rollback-diff-container');
-    const list = document.getElementById('rollback-diff-list');
-    list.innerHTML = renderDiffItems(data.diff, false);
-    if (data.diff.length === 0) {
-      list.innerHTML = '<div style="color:#6c7a89;font-size:11px;">无差异</div>';
-    }
-    container.style.display = 'block';
-  } catch (e) { /* ignore */ }
-}
-
-async function executeRollback() {
-  const targetVersion = parseInt(document.getElementById('rollback-version-select').value);
-  try {
-    const resp = await fetch(`/api/doc/${docId}/rollback/${targetVersion}`, { method: 'POST' });
-    const data = await resp.json();
-    if (data.success) {
-      closeModal('modal-rollback');
-      showToast(`已回退到 v${data.version}`);
-    } else {
-      showToast('回退失败: ' + (data.error || '未知错误'), 'error');
-    }
-  } catch (e) { showToast('回退请求失败', 'error'); }
-}
-
-// ===================== Version Diff =====================
-document.getElementById('btn-diff').addEventListener('click', async () => {
-  try {
-    const resp = await fetch(`/api/doc/${docId}/versions`);
-    const data = await resp.json();
-    versionList = data.versions;
-    const s1 = document.getElementById('diff-v1-select');
-    const s2 = document.getElementById('diff-v2-select');
-    s1.innerHTML = ''; s2.innerHTML = '';
-    data.versions.forEach(v => {
-      const o1 = new Option(`v${v.version} - ${v.description} (${v.user_name})`, v.version);
-      const o2 = new Option(`v${v.version} - ${v.description} (${v.user_name})`, v.version);
-      s1.appendChild(o1); s2.appendChild(o2);
-    });
-    if (data.versions.length > 1) {
-      s2.value = String(data.current_version);
-      s1.value = String(data.versions[data.versions.length - 2]?.version || 0);
-    }
-    document.getElementById('diff-list').innerHTML = '';
-    openModal('modal-diff');
-  } catch (e) { showToast('获取版本列表失败', 'error'); }
-});
-
-async function loadDiff() {
-  const v1 = parseInt(document.getElementById('diff-v1-select').value);
-  const v2 = parseInt(document.getElementById('diff-v2-select').value);
-  try {
-    const resp = await fetch(`/api/doc/${docId}/diff/${v1}/${v2}`);
-    const data = await resp.json();
-    document.getElementById('diff-list').innerHTML = renderDiffItems(data.diff, true);
-  } catch (e) { showToast('获取差异失败', 'error'); }
-}
-
-function renderDiffItems(diffs, showNav) {
-  if (!diffs || diffs.length === 0) return '<div style="color:#6c7a89;font-size:11px;">无差异</div>';
-  return diffs.map(d => {
-    const icons = { added: '⊕', removed: '⊖', modified: '↔' };
-    let valHtml = '';
-    if (d.type === 'modified') {
-      valHtml = `<span class="diff-val">${trunc(d.from_value)}</span><span class="diff-arrow">→</span><span class="diff-val">${trunc(d.to_value)}</span>`;
-    } else if (d.type === 'added') {
-      valHtml = `<span class="diff-val">${trunc(d.to_value)}</span>`;
-    } else {
-      valHtml = `<span class="diff-val">${trunc(d.from_value)}</span>`;
-    }
-    const navFn = showNav ? `onclick="navigateToPath(${JSON.stringify(d.path)})"` : '';
-    return `<div class="diff-item ${d.type}" ${navFn}>
-      <span class="diff-icon">${icons[d.type]}</span>
-      <span class="diff-path">/${d.path.join('/')}</span>
-      ${valHtml}
-    </div>`;
+function renderDiffItems(diffs){
+  if(!diffs||diffs.length===0)return'<div style="color:#6c7a89;font-size:11px;padding:8px;">无差异</div>';
+  const icons={added:'⊕',removed:'⊖',modified:'↔'};
+  return diffs.map(d=>{
+    let vh='';
+    if(d.type==='modified')vh=`<span class="diff-val">${trunc(d.from_value)}</span><span class="diff-arrow">→</span><span class="diff-val">${trunc(d.to_value)}</span>`;
+    else if(d.type==='added')vh=`<span class="diff-val">${trunc(d.to_value)}</span>`;
+    else vh=`<span class="diff-val">${trunc(d.from_value)}</span>`;
+    return `<div class="diff-item ${d.type}" onclick="navigateToPath(${JSON.stringify(d.path)})"><span class="diff-icon">${icons[d.type]}</span><span class="diff-path">/${d.path.join('/')}</span>${vh}</div>`;
   }).join('');
 }
 
-function trunc(v) {
-  if (v === null || v === undefined) return 'null';
-  const s = typeof v === 'string' ? v : JSON.stringify(v);
-  return s.length > 40 ? s.substring(0, 37) + '...' : s;
+function trunc(v){if(v===null||v===undefined)return'null';const s=typeof v==='string'?v:JSON.stringify(v);return s.length>40?s.substring(0,37)+'...':s;}
+
+// ===================== Audit Tab =====================
+async function loadAudit(){
+  const user=document.getElementById('audit-user').value,type=document.getElementById('audit-type').value;
+  const from=document.getElementById('audit-from').value,to=document.getElementById('audit-to').value;
+  let url=`/api/doc/${docId}/audit?user_name=${encodeURIComponent(user)}&op_type=${encodeURIComponent(type)}`;
+  if(from)url+=`&from_ver=${from}`;if(to)url+=`&to_ver=${to}`;
+  try{const resp=await fetch(url);const data=await resp.json();
+    const list=document.getElementById('audit-list');
+    let html='';
+    if(data.conflicts.length>0){
+      html+=`<div style="font-size:11px;color:#ff9800;padding:4px 8px;font-weight:600;">⚠️ 冲突记录 (${data.conflict_count} 条)</div>`;
+      data.conflicts.forEach(c=>{
+        html+=`<div class="audit-entry conflict" onclick="navigateToVersion(${c.version})">
+          <span class="audit-ver">v${c.version}</span><span class="audit-conflict-badge">冲突</span>
+          <span class="audit-usr">${esc(c.user_name)}</span><span class="audit-type">${esc(c.type)}</span>
+          <span class="audit-desc">${esc(c.conflict_desc||c.description)}</span></div>`;
+      });
+      html+='<div style="border-top:1px solid #2a3a4a;margin:4px 0;"></div>';
+    }
+    html+=`<div style="font-size:11px;color:#6c7a89;padding:4px 8px;">共 ${data.total} 条记录</div>`;
+    data.filtered.forEach(c=>{
+      html+=`<div class="audit-entry${c.conflict?' conflict':''}" onclick="navigateToVersion(${c.version})">
+        <span class="audit-ver">v${c.version}</span><span class="audit-usr">${esc(c.user_name)}</span>
+        <span class="audit-type">${esc(c.type)}</span><span class="audit-desc">${esc(c.description)}</span></div>`;
+    });
+    list.innerHTML=html;
+  }catch(e){}
 }
+
+function navigateToVersion(v){document.getElementById('tab-log').classList.add('active');}
+
+// ===================== Timeline Modal =====================
+document.getElementById('btn-rollback').addEventListener('click',async()=>{
+  try{const resp=await fetch(`/api/doc/${docId}/versions`);const data=await resp.json();versionList=data.versions;
+    const list=document.getElementById('timeline-list');
+    list.innerHTML=data.versions.reverse().map(v=>{
+      const d=new Date(v.timestamp*1000); const ts=d.toLocaleString('zh-CN',{hour12:false});
+      return `<div class="timeline-item">
+        <span class="tl-ver">v${v.version}</span>
+        <div class="tl-info"><div class="tl-usr">${esc(v.user_name)}</div><div class="tl-desc">${esc(v.description)}</div><div class="tl-time">${ts}</div></div>
+        <button class="tl-expand" onclick="event.stopPropagation();loadVersionDetail(${v.version})">查看详情</button>
+      </div>`;
+    }).join('');
+    document.getElementById('version-detail-panel').classList.remove('active');
+    openModal('modal-timeline');
+  }catch(e){showToast('获取版本列表失败','error');}
+});
+
+async function loadVersionDetail(v){
+  try{const resp=await fetch(`/api/doc/${docId}/version/${v}`);const data=await resp.json();
+    document.getElementById('vd-desc').textContent=data.meta.description;
+    document.getElementById('vd-user').textContent=`${data.meta.user_name} (${data.meta.type})`;
+    document.getElementById('vd-content').textContent=JSON.stringify(data.data,null,2);
+    document.getElementById('vd-diff').innerHTML=(data.diff_from_prev&&data.diff_from_prev.length>0)?renderDiffItems(data.diff_from_prev):'<span style="color:#6c7a89;">初始版本，无上一版本可对比</span>';
+    document.getElementById('version-detail-panel').classList.add('active');
+    timelineTargetVersion=v;
+    document.getElementById('btn-timeline-rollback').style.display=role==='observer'?'none':'block';
+    document.getElementById('btn-timeline-rollback').onclick=()=>{
+      if(role==='observer'){showToast('观察者模式，无法回退','error');return;}
+      if(v===docVersion){showToast('已是当前版本','error');return;}
+      closeModal('modal-timeline'); openRollbackConfirm(v);
+    };
+  }catch(e){showToast('获取版本详情失败','error');}
+}
+
+function closeVersionDetail(){document.getElementById('version-detail-panel').classList.remove('active');timelineTargetVersion=null;}
+
+async function openRollbackConfirm(targetVer){
+  try{const resp=await fetch(`/api/doc/${docId}/diff/${targetVer}/${docVersion}`);const data=await resp.json();
+    document.getElementById('rollback-diff-list').innerHTML=data.diff.length>0?renderDiffItems(data.diff):'<div style="color:#6c7a89;font-size:11px;">无差异</div>';
+    document.getElementById('rollback-diff-container').style.display='block';
+    document.getElementById('btn-rollback-confirm').onclick=()=>executeRollback(targetVer);
+    openModal('modal-rollback');
+  }catch(e){showToast('加载差异预览失败','error');}
+}
+
+async function executeRollback(targetVer){
+  if(role==='observer'){showToast('观察者模式，无法回退','error');return;}
+  try{const resp=await fetch(`/api/doc/${docId}/rollback/${targetVer}?sid=${encodeURIComponent(userId)}`,{method:'POST'});
+    const data=await resp.json();
+    if(data.success){closeModal('modal-rollback');showToast(`已回退到 v${data.version}`);}
+    else showToast('回退失败: '+(data.error||'未知错误'),'error');
+  }catch(e){showToast('回退请求失败','error');}
+}
+
+// ===================== Raw JSON =====================
+document.getElementById('btn-raw-json').addEventListener('click',()=>{document.getElementById('raw-json-text').value=JSON.stringify(docData,null,2);openModal('modal-raw-json');});
+function applyRawJson(){try{const nd=JSON.parse(document.getElementById('raw-json-text').value);submitOperation('update',{path:[],value:nd});closeModal('modal-raw-json');showToast('JSON已应用');}catch(e){showToast('JSON格式错误: '+e.message,'error');}}
 
 // ===================== Export =====================
-document.getElementById('btn-export').addEventListener('click', () => {
-  window.open(`/api/doc/${docId}/export`, '_blank');
-});
-
-// ===================== Add Root =====================
-document.getElementById('btn-add-root').addEventListener('click', () => {
-  openAddNodeModal([]);
-});
+document.getElementById('btn-export').addEventListener('click',()=>{window.open(`/api/doc/${docId}/export`,'_blank');});
 
 // ===================== Reset =====================
-document.getElementById('btn-reset').addEventListener('click', () => {
-  if (role === 'observer') { showToast('观察者模式，无法重置', 'error'); return; }
-  if (!confirm('确定要重置文档吗？所有数据将丢失。')) return;
-  fetch(`/api/doc/${docId}/rollback/0`, { method: 'POST' })
-    .then(() => showToast('文档已重置'))
-    .catch(() => showToast('重置失败', 'error'));
-});
+document.getElementById('btn-reset').addEventListener('click',()=>{if(role==='observer'){showToast('观察者模式，无法重置','error');return;}if(!confirm('确定要重置文档吗？所有数据将丢失。'))return;fetch(`/api/doc/${docId}/rollback/0?sid=${encodeURIComponent(userId)}`,{method:'POST'}).then(()=>showToast('文档已重置')).catch(()=>showToast('重置失败','error'));});
+
+// ===================== Add Root =====================
+document.getElementById('btn-add-root').addEventListener('click',()=>{openAddNodeModal([]);});
+
+// ===================== Modals =====================
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
 
 // ===================== Toast =====================
-function showToast(message, type) {
-  const toast = document.getElementById('toast');
-  toast.textContent = message;
-  toast.className = type === 'error' ? 'error show' : 'show';
-  clearTimeout(toast._timeout);
-  toast._timeout = setTimeout(() => { toast.classList.remove('show'); }, 2500);
-}
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className=type==='error'?'error show':'show';clearTimeout(t._timeout);t._timeout=setTimeout(()=>t.classList.remove('show'),2500);}
 
-// ===================== Keyboard =====================
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    closeModal('modal-rollback'); closeModal('modal-raw-json');
-    closeModal('modal-add-node'); closeModal('modal-diff');
-    if (moveSourcePath) { moveSourcePath = null; document.querySelectorAll('.node-row').forEach(r => { r.style.outline = ''; r.style.cursor = 'pointer'; }); addLog('移动已取消', 'system'); }
-  }
+// ===================== Escape =====================
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape'){closeModal('modal-rollback');closeModal('modal-raw-json');closeModal('modal-add-node');closeModal('modal-timeline');
+    if(moveSourcePath){moveSourcePath=null;document.querySelectorAll('.node-row').forEach(r=>{r.style.outline='';r.style.cursor='pointer';});addLog('移动已取消','system');}}
 });
 </script>
 </body>
