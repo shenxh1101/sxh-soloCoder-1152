@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON实时差分同步演示 - OT协作编辑</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #0f1923;
+  color: #c8d6e5;
+  height: 100vh;
+  overflow: hidden;
+}
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* Top Bar */
+#topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #1a2a3a, #152238);
+  border-bottom: 1px solid #2a3a4a;
+  flex-shrink: 0;
+  z-index: 10;
+}
+#topbar .logo {
+  font-size: 18px; font-weight: 700;
+  background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+}
+#topbar .spacer { flex: 1; }
+#topbar label { font-size: 12px; color: #6c7a89; }
+#topbar select, #topbar button, #topbar input {
+  background: #1e2d3d; border: 1px solid #2a3a4a; color: #c8d6e5;
+  padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;
+}
+#topbar button:hover { background: #2a3a5a; border-color: #3a7bd5; }
+#topbar button.primary { background: #3a7bd5; border-color: #3a7bd5; color: #fff; }
+#topbar button.primary:hover { background: #4a8be5; }
+#topbar button.danger { background: #5a2020; border-color: #8b3030; color: #ff8080; }
+#topbar button.danger:hover { background: #6a3030; }
+#status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; flex-shrink: 0; }
+#status-dot.disconnected { background: #f44336; }
+#user-name-display { font-size: 13px; color: #00d2ff; font-weight: 600; }
+#version-display { font-size: 11px; color: #6c7a89; }
+
+/* Main layout */
+#main { display: flex; flex: 1; overflow: hidden; }
+#editor-panel {
+  flex: 1; display: flex; flex-direction: column;
+  border-right: 1px solid #2a3a4a; overflow: hidden;
+}
+#side-panel {
+  width: 380px; display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Panel headers */
+.panel-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  background: #152238; border-bottom: 1px solid #2a3a4a;
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; flex-shrink: 0;
+}
+.panel-header .icon { font-size: 14px; }
+
+/* JSON Tree */
+#tree-container {
+  flex: 1; overflow: auto; padding: 8px 0;
+}
+.tree-node { font-size: 13px; user-select: none; }
+.tree-node .node-row {
+  display: flex; align-items: center; gap: 2px;
+  padding: 1px 0; cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.tree-node .node-row:hover { background: rgba(58,123,213,0.12); }
+.tree-node .node-row.selected { background: rgba(58,123,213,0.25); }
+.tree-node .indent { display: inline-block; }
+.tree-node .toggle {
+  width: 16px; font-size: 10px; text-align: center; cursor: pointer;
+  color: #6c7a89; flex-shrink: 0;
+}
+.tree-node .toggle:hover { color: #00d2ff; }
+.tree-node .key {
+  color: #5dade2; font-weight: 500; margin-right: 4px; cursor: default;
+}
+.tree-node .key:hover { text-decoration: underline; }
+.tree-node .colon { color: #6c7a89; margin-right: 4px; }
+.tree-node .type-badge {
+  font-size: 10px; color: #6c7a89; background: #1a2a3a;
+  padding: 0 4px; border-radius: 2px; margin-right: 4px; flex-shrink: 0;
+}
+.tree-node .val-string { color: #f0c674; }
+.tree-node .val-number { color: #81c784; }
+.tree-node .val-boolean { color: #ce93d8; }
+.tree-node .val-null { color: #ef5350; }
+.tree-node .children { padding-left: 16px; }
+.tree-node input.node-editor {
+  background: #1e2d3d; border: 1px solid #3a7bd5; color: #c8d6e5;
+  padding: 1px 6px; border-radius: 3px; font-size: 13px; outline: none;
+  min-width: 80px; margin-right: 4px;
+}
+.tree-node .node-actions { display: none; margin-left: 4px; gap: 2px; }
+.tree-node .node-row:hover .node-actions { display: flex; }
+.tree-node .node-actions button {
+  background: none; border: 1px solid #2a3a4a; color: #6c7a89;
+  font-size: 10px; padding: 0 4px; border-radius: 2px; cursor: pointer;
+  height: 18px; line-height: 16px;
+}
+.tree-node .node-actions button:hover { color: #00d2ff; border-color: #3a7bd5; }
+.tree-node .node-actions button.del-btn:hover { color: #ff8080; border-color: #8b3030; }
+.tree-node .placeholder { color: #3a4a5a; font-style: italic; }
+
+/* Drag */
+.tree-node .node-row.drag-over { outline: 1px dashed #3a7bd5; }
+.tree-node .node-row.dragging { opacity: 0.5; }
+
+/* Side Panel */
+#log-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid #2a3a4a; }
+#log-list { flex: 1; overflow: auto; padding: 4px; }
+.log-entry {
+  padding: 5px 8px; border-left: 3px solid #2a3a4a; margin: 2px 0;
+  font-size: 11px; line-height: 1.4; border-radius: 0 4px 4px 0;
+}
+.log-entry.system { border-left-color: #6c7a89; color: #6c7a89; }
+.log-entry.info { border-left-color: #3a7bd5; }
+.log-entry .log-time { color: #4a5a6a; margin-right: 6px; }
+.log-entry .log-user { color: #00d2ff; font-weight: 600; }
+#user-section { display: flex; flex-direction: column; flex-shrink: 0; max-height: 180px; }
+#user-list { flex: 1; overflow: auto; padding: 4px; }
+.user-item {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+  font-size: 12px;
+}
+.user-dot { width: 6px; height: 6px; border-radius: 50%; background: #4caf50; }
+.user-dot.offline { background: #f44336; }
+
+/* Modal */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 8px;
+  padding: 20px; min-width: 320px; max-width: 500px;
+}
+.modal h3 { margin-bottom: 12px; color: #00d2ff; }
+.modal .form-group { margin-bottom: 10px; }
+.modal .form-group label { display: block; font-size: 12px; color: #6c7a89; margin-bottom: 4px; }
+.modal .form-group input, .modal .form-group select {
+  width: 100%; padding: 6px 10px; background: #0f1923; border: 1px solid #2a3a4a;
+  color: #c8d6e5; border-radius: 4px; font-size: 13px;
+}
+.modal .form-group textarea {
+  width: 100%; height: 100px; padding: 6px 10px; background: #0f1923;
+  border: 1px solid #2a3a4a; color: #c8d6e5; border-radius: 4px;
+  font-size: 11px; font-family: 'Cascadia Code', 'Consolas', monospace; resize: vertical;
+}
+.modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: #1a3a2a; border: 1px solid #2a5a3a; color: #81c784;
+  padding: 8px 16px; border-radius: 4px; font-size: 12px;
+  z-index: 200; display: none; transition: opacity 0.3s;
+}
+#toast.error { background: #3a1a1a; border-color: #5a2a2a; color: #ff8080; }
+#toast.show { display: block; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #0f1923; }
+::-webkit-scrollbar-thumb { background: #2a3a4a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a4a5a; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="topbar">
+    <span class="logo">🔗 OT实时协作编辑器</span>
+    <span id="status-dot" title="连接状态"></span>
+    <span id="user-name-display">未连接</span>
+    <span id="version-display">v0</span>
+    <span class="spacer"></span>
+    <label>冲突策略:</label>
+    <select id="conflict-strategy">
+      <option value="last_writer_wins">后提交者获胜</option>
+      <option value="auto_merge">自动合并</option>
+    </select>
+    <button id="btn-export" class="primary" title="导出JSON">📥 导出</button>
+    <button id="btn-rollback" title="回退到历史版本">⏪ 回退</button>
+    <button id="btn-add-root" title="添加根节点">➕ 添加</button>
+    <button id="btn-raw-json" title="查看/编辑原始JSON">📝 原始JSON</button>
+    <button id="btn-reset" class="danger" title="重置文档">🔄 重置</button>
+  </div>
+
+  <div id="main">
+    <div id="editor-panel">
+      <div class="panel-header">
+        <span class="icon">📁</span> JSON文档树
+      </div>
+      <div id="tree-container"><div style="padding:20px;color:#6c7a89;">正在连接服务器...</div></div>
+    </div>
+    <div id="side-panel">
+      <div id="log-section">
+        <div class="panel-header"><span class="icon">📋</span> 操作日志</div>
+        <div id="log-list"></div>
+      </div>
+      <div id="user-section">
+        <div class="panel-header"><span class="icon">👥</span> 在线用户</div>
+        <div id="user-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-rollback">
+  <div class="modal">
+    <h3>回退到历史版本</h3>
+    <div class="form-group">
+      <label>选择目标版本</label>
+      <select id="rollback-version-select"></select>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeModal('modal-rollback')">取消</button>
+      <button class="danger" onclick="executeRollback()">确认回退</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-raw-json">
+  <div class="modal">
+    <h3>原始JSON编辑</h3>
+    <div class="form-group">
+      <label>直接编辑JSON内容（注意：此操作将覆盖当前文档）</label>
+      <textarea id="raw-json-text"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeModal('modal-raw-json')">取消</button>
+      <button class="primary" onclick="applyRawJson()">应用</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-node">
+  <div class="modal">
+    <h3>添加新节点</h3>
+    <div class="form-group">
+      <label>节点键名</label>
+      <input type="text" id="add-node-key" placeholder="输入键名...">
+    </div>
+    <div class="form-group">
+      <label>节点类型</label>
+      <select id="add-node-type" onchange="onAddNodeTypeChange()">
+        <option value="string">字符串</option>
+        <option value="number">数字</option>
+        <option value="boolean">布尔值</option>
+        <option value="object">对象</option>
+        <option value="null">null</option>
+      </select>
+    </div>
+    <div class="form-group" id="add-node-value-group">
+      <label>节点值</label>
+      <input type="text" id="add-node-value" placeholder="输入值...">
+    </div>
+    <input type="hidden" id="add-node-path">
+    <div class="modal-actions">
+      <button onclick="closeModal('modal-add-node')">取消</button>
+      <button class="primary" onclick="executeAddNode()">添加</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+// ===================== Global State =====================
+let docData = {};
+let docVersion = 0;
+let docId = 'default';
+let userId = '';
+let userName = '';
+let socket = null;
+let clients = {};
+let expandedNodes = new Set();
+let selectedPath = null;
+let addNodeTargetPath = null;
+
+// ===================== Connect =====================
+function initConnection() {
+  userId = 'user_' + Math.random().toString(36).substring(2, 8);
+  userName = 'User_' + userId.substring(5).toUpperCase();
+
+  const storedName = localStorage.getItem('ot_user_name');
+  if (storedName) userName = storedName;
+  else localStorage.setItem('ot_user_name', userName);
+
+  socket = io({
+    transports: ['websocket', 'polling']
+  });
+
+  socket.on('connect', () => {
+    document.getElementById('status-dot').classList.remove('disconnected');
+    document.getElementById('user-name-display').textContent = userName;
+    socket.emit('join', { doc_id: docId, user_name: userName });
+    addLog('已连接到服务器', 'system');
+  });
+
+  socket.on('disconnect', () => {
+    document.getElementById('status-dot').classList.add('disconnected');
+    addLog('与服务器断开连接', 'system');
+  });
+
+  socket.on('connected', (data) => {
+    userId = data.sid;
+  });
+
+  socket.on('sync_full', (data) => {
+    docData = data.data;
+    docVersion = data.version;
+    docId = data.doc_id;
+    clients = data.clients || {};
+    updateStatus();
+    renderTree();
+    updateUserList();
+    addLog(`已同步完整文档 v${docVersion}`, 'system');
+  });
+
+  socket.on('sync_operations', (data) => {
+    data.operations.forEach(op => { applyOperationLocally(op); });
+    docData = data.data;
+    docVersion = data.version;
+    updateStatus();
+    renderTree();
+    addLog(`已同步 ${data.operations.length} 个增量操作，当前 v${docVersion}`, 'system');
+  });
+
+  socket.on('sync_required', (data) => {
+    addLog('版本落后于服务器，正在请求同步...', 'system');
+    socket.emit('request_sync', { doc_id: docId, version: docVersion });
+  });
+
+  socket.on('operation_applied', (data) => {
+    if (data.user_id === userId) return;
+    docData = data.data;
+    docVersion = data.version;
+    updateStatus();
+    renderTree();
+  });
+
+  socket.on('operation_rejected', (data) => {
+    addLog(`操作被拒绝: ${data.reason}`, 'system');
+    socket.emit('request_sync', { doc_id: docId, version: docVersion });
+  });
+
+  socket.on('operation_log', (data) => {
+    addLog(data.message, data.type);
+  });
+
+  socket.on('user_joined', (data) => {
+    clients = data.clients || clients;
+    updateUserList();
+    addLog(`用户 ${data.user_name} 加入了文档`, 'system');
+  });
+
+  socket.on('user_left', (data) => {
+    clients = data.clients || clients;
+    updateUserList();
+    addLog(`用户 ${data.user_name} 离开了文档`, 'system');
+  });
+}
+
+// ===================== Heartbeat =====================
+setInterval(() => {
+  if (socket && socket.connected) {
+    socket.emit('heartbeat', { doc_id: docId });
+  }
+}, 3000);
+
+// ===================== Status =====================
+function updateStatus() {
+  document.getElementById('version-display').textContent = 'v' + docVersion;
+}
+
+// ===================== Log =====================
+function addLog(message, type) {
+  type = type || 'info';
+  const list = document.getElementById('log-list');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+  entry.innerHTML = `<span class="log-time">${timeStr}</span>${message}`;
+  list.prepend(entry);
+  if (list.children.length > 200) {
+    list.removeChild(list.lastChild);
+  }
+}
+
+// ===================== User List =====================
+function updateUserList() {
+  const list = document.getElementById('user-list');
+  list.innerHTML = '';
+  const meItem = document.createElement('div');
+  meItem.className = 'user-item';
+  meItem.innerHTML = `<span class="user-dot"></span> ${userName} (我)`;
+  list.appendChild(meItem);
+
+  for (const [cid, info] of Object.entries(clients)) {
+    const item = document.createElement('div');
+    item.className = 'user-item';
+    item.innerHTML = `<span class="user-dot"></span> ${info.user_name}`;
+    list.appendChild(item);
+  }
+}
+
+// ===================== Tree Rendering =====================
+function renderTree() {
+  const container = document.getElementById('tree-container');
+  container.innerHTML = '';
+  container.appendChild(buildTreeView(docData, [], 'root'));
+}
+
+function buildTreeView(obj, path, nodeKey) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'tree-node';
+
+  if (obj !== null && typeof obj === 'object' && !Array.isArray(obj)) {
+    const row = createNodeRow(nodeKey, 'object', Object.keys(obj).length + ' 个字段', path);
+    wrapper.appendChild(row);
+
+    const childrenDiv = document.createElement('div');
+    childrenDiv.className = 'children';
+    const pathKey = JSON.stringify(path);
+    if (!expandedNodes.has(pathKey)) {
+      childrenDiv.style.display = 'none';
+    }
+
+    for (const [key, val] of Object.entries(obj)) {
+      childrenDiv.appendChild(buildTreeView(val, [...path, key], key));
+    }
+
+    const addBtn = document.createElement('div');
+    addBtn.style.cssText = 'padding-left:40px;font-size:11px;color:#3a4a5a;cursor:pointer;margin-top:2px;';
+    addBtn.textContent = '+ 添加字段...';
+    addBtn.onclick = (e) => {
+      e.stopPropagation();
+      openAddNodeModal(path);
+    };
+    childrenDiv.appendChild(addBtn);
+
+    wrapper.appendChild(childrenDiv);
+  } else if (Array.isArray(obj)) {
+    const row = createNodeRow(nodeKey, 'array', `[${obj.length} 项]`, path);
+    wrapper.appendChild(row);
+
+    const childrenDiv = document.createElement('div');
+    childrenDiv.className = 'children';
+    const pathKey = JSON.stringify(path);
+    if (!expandedNodes.has(pathKey)) {
+      childrenDiv.style.display = 'none';
+    }
+
+    obj.forEach((val, idx) => {
+      childrenDiv.appendChild(buildTreeView(val, [...path, String(idx)], String(idx)));
+    });
+
+    wrapper.appendChild(childrenDiv);
+  } else {
+    const valDisplay = formatValue(obj);
+    const type = typeof obj;
+    const row = createNodeRow(nodeKey, type, valDisplay, path, obj);
+    wrapper.appendChild(row);
+  }
+
+  return wrapper;
+}
+
+function createNodeRow(key, type, display, path, rawValue) {
+  const row = document.createElement('div');
+  row.className = 'node-row';
+  row.dataset.path = JSON.stringify(path);
+  row.onclick = (e) => {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+    selectNode(path, row);
+  };
+
+  const depth = path.length;
+  const indent = document.createElement('span');
+  indent.className = 'indent';
+  indent.style.width = (depth * 16) + 'px';
+  indent.innerHTML = '&nbsp;';
+  row.appendChild(indent);
+
+  if (type === 'object' || type === 'array') {
+    const toggle = document.createElement('span');
+    toggle.className = 'toggle';
+    const pathKey = JSON.stringify(path);
+    toggle.textContent = expandedNodes.has(pathKey) ? '▼' : '▶';
+    toggle.onclick = (e) => {
+      e.stopPropagation();
+      toggleNode(path);
+    };
+    row.appendChild(toggle);
+  } else {
+    const spacer = document.createElement('span');
+    spacer.className = 'toggle';
+    row.appendChild(spacer);
+  }
+
+  const keyEl = document.createElement('span');
+  keyEl.className = 'key';
+  keyEl.textContent = key;
+  row.appendChild(keyEl);
+
+  const colonEl = document.createElement('span');
+  colonEl.className = 'colon';
+  colonEl.textContent = ':';
+  row.appendChild(colonEl);
+
+  if (type === 'object' || type === 'array') {
+    const badge = document.createElement('span');
+    badge.className = 'type-badge';
+    badge.textContent = type === 'object' ? '{}' : '[]';
+    row.appendChild(badge);
+  }
+
+  const valSpan = document.createElement('span');
+  valSpan.className = 'val-' + type;
+  if (type === 'string') valSpan.textContent = '"' + display + '"';
+  else valSpan.textContent = display;
+  row.appendChild(valSpan);
+
+  if (path.length > 0) {
+    const actions = document.createElement('span');
+    actions.className = 'node-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️';
+    editBtn.title = '编辑';
+    editBtn.onclick = (e) => {
+      e.stopPropagation();
+      startInlineEdit(row, path, rawValue, type);
+    };
+    actions.appendChild(editBtn);
+
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '➕';
+    addBtn.title = '添加子节点';
+    addBtn.onclick = (e) => {
+      e.stopPropagation();
+      openAddNodeModal(path);
+    };
+    if (type !== 'object' && type !== 'array') {
+      addBtn.style.display = 'none';
+    }
+    actions.appendChild(addBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.className = 'del-btn';
+    delBtn.title = '删除';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      submitOperation('delete', { path: path });
+    };
+    actions.appendChild(delBtn);
+
+    const moveBtn = document.createElement('button');
+    moveBtn.textContent = '↗️';
+    moveBtn.title = '移动（点击后选择目标）';
+    moveBtn.onclick = (e) => {
+      e.stopPropagation();
+      startMove(path);
+    };
+    actions.appendChild(moveBtn);
+
+    row.appendChild(actions);
+  }
+
+  row.draggable = true;
+  row.ondragstart = (e) => {
+    e.dataTransfer.setData('text/plain', JSON.stringify(path));
+    row.classList.add('dragging');
+  };
+  row.ondragend = () => row.classList.remove('dragging');
+  row.ondragover = (e) => {
+    e.preventDefault();
+    row.classList.add('drag-over');
+  };
+  row.ondragleave = () => row.classList.remove('drag-over');
+  row.ondrop = (e) => {
+    e.preventDefault();
+    row.classList.remove('drag-over');
+    const fromPath = JSON.parse(e.dataTransfer.getData('text/plain'));
+    if (JSON.stringify(fromPath) !== JSON.stringify(path)) {
+      submitOperation('move', { from_path: fromPath, to_path: path });
+    }
+  };
+
+  return row;
+}
+
+function formatValue(val) {
+  if (val === null) return 'null';
+  if (typeof val === 'string') {
+    if (val.length > 60) return val.substring(0, 57) + '...';
+    return val;
+  }
+  return String(val);
+}
+
+function toggleNode(path) {
+  const pathKey = JSON.stringify(path);
+  if (expandedNodes.has(pathKey)) {
+    expandedNodes.delete(pathKey);
+  } else {
+    expandedNodes.add(pathKey);
+  }
+  renderTree();
+}
+
+function selectNode(path, row) {
+  selectedPath = path;
+  document.querySelectorAll('.node-row').forEach(r => r.classList.remove('selected'));
+  if (row) row.classList.add('selected');
+}
+
+// ===================== Inline Edit =====================
+function startInlineEdit(row, path, currentValue, type) {
+  const valSpan = row.querySelector('[class^="val-"]');
+  if (!valSpan) return;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'node-editor';
+
+  if (type === 'string') {
+    input.value = currentValue;
+  } else if (type === 'number') {
+    input.value = currentValue;
+  } else if (type === 'boolean') {
+    input.value = String(currentValue);
+  } else if (currentValue === null) {
+    input.value = 'null';
+  } else {
+    input.value = JSON.stringify(currentValue);
+  }
+
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      finishInlineEdit(input, valSpan, path, type);
+    } else if (e.key === 'Escape') {
+      input.replaceWith(valSpan);
+    }
+  };
+  input.onblur = () => {
+    finishInlineEdit(input, valSpan, path, type);
+  };
+
+  valSpan.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function finishInlineEdit(input, originalSpan, path, type) {
+  const rawValue = input.value.trim();
+  let newValue;
+  if (type === 'number') {
+    newValue = Number(rawValue);
+    if (isNaN(newValue)) { input.replaceWith(originalSpan); return; }
+  } else if (type === 'boolean') {
+    if (rawValue.toLowerCase() === 'true') newValue = true;
+    else if (rawValue.toLowerCase() === 'false') newValue = false;
+    else { input.replaceWith(originalSpan); return; }
+  } else if (rawValue === 'null') {
+    newValue = null;
+  } else if (type === 'object' || type === 'array') {
+    try { newValue = JSON.parse(rawValue); } catch (e) { input.replaceWith(originalSpan); return; }
+  } else {
+    newValue = rawValue;
+  }
+
+  input.replaceWith(originalSpan);
+  submitOperation('update', { path: path, value: newValue });
+}
+
+// ===================== Operations =====================
+function submitOperation(type, params) {
+  if (!socket || !socket.connected) {
+    showToast('未连接到服务器', 'error');
+    return;
+  }
+
+  const operation = { type: type, doc_version: docVersion, ...params };
+
+  socket.emit('submit_operation', {
+    doc_id: docId,
+    operation: operation,
+    conflict_strategy: document.getElementById('conflict-strategy').value
+  });
+}
+
+function applyOperationLocally(op) {
+  const path = op.path;
+  const current = docData;
+
+  if (op.type === 'update') {
+    setValueAtPath(docData, path, op.value);
+  } else if (op.type === 'add') {
+    const parent = getValueAtPath(docData, path);
+    if (parent && typeof parent === 'object' && !Array.isArray(parent)) {
+      parent[op.key] = op.value;
+    }
+  } else if (op.type === 'delete') {
+    deleteAtPath(docData, path);
+  } else if (op.type === 'move') {
+    const val = getValueAtPath(docData, op.from_path);
+    deleteAtPath(docData, op.from_path);
+    if (val !== undefined) {
+      const parent = getValueAtPath(docData, op.to_path.slice(0, -1));
+      if (parent && typeof parent === 'object') {
+        parent[op.to_path[op.to_path.length - 1]] = val;
+      }
+    }
+  }
+}
+
+function getValueAtPath(obj, path) {
+  let current = obj;
+  for (const key of path) {
+    if (current === null || typeof current !== 'object') return undefined;
+    current = current[key];
+  }
+  return current;
+}
+
+function setValueAtPath(obj, path, value) {
+  let current = obj;
+  for (let i = 0; i < path.length - 1; i++) {
+    if (!(path[i] in current)) current[path[i]] = {};
+    current = current[path[i]];
+  }
+  current[path[path.length - 1]] = value;
+}
+
+function deleteAtPath(obj, path) {
+  let current = obj;
+  for (let i = 0; i < path.length - 1; i++) {
+    if (!(path[i] in current)) return false;
+    current = current[path[i]];
+  }
+  const lastKey = path[path.length - 1];
+  if (Array.isArray(current)) {
+    current.splice(Number(lastKey), 1);
+  } else {
+    delete current[lastKey];
+  }
+  return true;
+}
+
+// ===================== Move =====================
+let moveSourcePath = null;
+
+function startMove(sourcePath) {
+  if (moveSourcePath) {
+    addLog('移动取消', 'system');
+    moveSourcePath = null;
+    document.querySelectorAll('.node-row').forEach(r => r.style.outline = '');
+    return;
+  }
+  moveSourcePath = sourcePath;
+  addLog(`已选择源节点: ${sourcePath.join('/')}，请点击目标节点`, 'system');
+  document.querySelectorAll('.node-row').forEach(r => {
+    r.style.outline = '1px dashed #ff9800';
+    r.style.cursor = 'crosshair';
+    r.onclick = function(e) {
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+      const targetPath = JSON.parse(this.dataset.path);
+      if (JSON.stringify(targetPath) !== JSON.stringify(moveSourcePath)) {
+        submitOperation('move', { from_path: moveSourcePath, to_path: targetPath });
+      }
+      moveSourcePath = null;
+      document.querySelectorAll('.node-row').forEach(rr => {
+        rr.style.outline = '';
+        rr.style.cursor = 'pointer';
+      });
+      renderTree();
+    };
+  });
+}
+
+// ===================== Add Node Modal =====================
+function openAddNodeModal(path) {
+  addNodeTargetPath = path;
+  document.getElementById('add-node-key').value = '';
+  document.getElementById('add-node-value').value = '';
+  document.getElementById('add-node-type').value = 'string';
+  document.getElementById('add-node-value-group').style.display = 'block';
+  document.getElementById('add-node-path').value = JSON.stringify(path);
+  document.getElementById('modal-add-node').classList.add('active');
+  setTimeout(() => document.getElementById('add-node-key').focus(), 100);
+}
+
+function onAddNodeTypeChange() {
+  const type = document.getElementById('add-node-type').value;
+  const valueGroup = document.getElementById('add-node-value-group');
+  valueGroup.style.display = (type === 'object' || type === 'null') ? 'none' : 'block';
+}
+
+function executeAddNode() {
+  const key = document.getElementById('add-node-key').value.trim();
+  if (!key) { showToast('请输入键名', 'error'); return; }
+
+  const type = document.getElementById('add-node-type').value;
+  const rawValue = document.getElementById('add-node-value').value.trim();
+  let value;
+  switch (type) {
+    case 'string': value = rawValue; break;
+    case 'number': value = Number(rawValue); if (isNaN(value)) { showToast('无效数字', 'error'); return; } break;
+    case 'boolean': value = rawValue.toLowerCase() === 'true'; break;
+    case 'null': value = null; break;
+    case 'object': value = {}; break;
+  }
+
+  submitOperation('add', { path: addNodeTargetPath, key: key, value: value });
+  closeModal('modal-add-node');
+}
+
+// ===================== Modals =====================
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ===================== Raw JSON =====================
+document.getElementById('btn-raw-json').addEventListener('click', () => {
+  document.getElementById('raw-json-text').value = JSON.stringify(docData, null, 2);
+  openModal('modal-raw-json');
+});
+
+function applyRawJson() {
+  try {
+    const newData = JSON.parse(document.getElementById('raw-json-text').value);
+    docVersion += 100;
+    submitOperation('update', {
+      path: [],
+      value: newData,
+      doc_version: docVersion
+    });
+    closeModal('modal-raw-json');
+    showToast('JSON已应用');
+  } catch (e) {
+    showToast('JSON格式错误: ' + e.message, 'error');
+  }
+}
+
+// ===================== Rollback =====================
+document.getElementById('btn-rollback').addEventListener('click', async () => {
+  try {
+    const resp = await fetch(`/api/doc/${docId}/versions`);
+    const data = await resp.json();
+    const sel = document.getElementById('rollback-version-select');
+    sel.innerHTML = '';
+    data.versions.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.version;
+      opt.textContent = `v${v.version} - ${v.description} (${v.user_name})`;
+      sel.appendChild(opt);
+    });
+    openModal('modal-rollback');
+  } catch (e) {
+    showToast('获取版本列表失败', 'error');
+  }
+});
+
+async function executeRollback() {
+  const sel = document.getElementById('rollback-version-select');
+  const targetVersion = parseInt(sel.value);
+  try {
+    const resp = await fetch(`/api/doc/${docId}/rollback/${targetVersion}`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      closeModal('modal-rollback');
+      showToast(`已回退到 v${data.version}`);
+    } else {
+      showToast('回退失败: ' + (data.error || '未知错误'), 'error');
+    }
+  } catch (e) {
+    showToast('回退请求失败', 'error');
+  }
+}
+
+// ===================== Export =====================
+document.getElementById('btn-export').addEventListener('click', () => {
+  window.open(`/api/doc/${docId}/export`, '_blank');
+});
+
+// ===================== Add Root =====================
+document.getElementById('btn-add-root').addEventListener('click', () => {
+  openAddNodeModal([]);
+});
+
+// ===================== Reset =====================
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('确定要重置文档吗？所有数据将丢失。')) return;
+  fetch(`/api/doc/${docId}/rollback/0`, { method: 'POST' })
+    .then(() => showToast('文档已重置'))
+    .catch(() => showToast('重置失败', 'error'));
+});
+
+// ===================== Toast =====================
+function showToast(message, type) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = type === 'error' ? 'error show' : 'show';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2500);
+}
+
+// ===================== Keyboard =====================
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeModal('modal-rollback');
+    closeModal('modal-raw-json');
+    closeModal('modal-add-node');
+    if (moveSourcePath) {
+      moveSourcePath = null;
+      document.querySelectorAll('.node-row').forEach(r => {
+        r.style.outline = '';
+        r.style.cursor = 'pointer';
+      });
+      addLog('移动已取消', 'system');
+    }
+  }
+});
+
+// ===================== Init =====================
+initConnection();
+</script>
+
+</body>
+</html>
